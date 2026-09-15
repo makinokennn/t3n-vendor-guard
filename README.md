@@ -158,7 +158,7 @@ number.
 ## Quickstart
 
 ```bash
-git clone https://github.com/<you>/vendor-guard && cd vendor-guard
+git clone https://github.com/makinokennn/t3n-vendor-guard && cd t3n-vendor-guard
 
 # 1. Contract: build + test
 cd contract
@@ -187,6 +187,22 @@ Then publish and run for real: [`docs/SETUP.md`](docs/SETUP.md).
 Every image in [`docs/screenshots/`](docs/screenshots) is a real command's output,
 rendered by [`tools/make_screenshots.py`](tools/make_screenshots.py), re-run it
 and you get the same pictures from your own machine.
+
+The three that carry the most weight, inline so you don't have to go looking:
+
+**The contract's tests pass on the host target, where there is no enclave to hide behind:**
+
+![35 Rust tests passing](docs/screenshots/01-contract-tests.png)
+
+**The agent typechecks and its 42 tests pass:**
+
+![tsc clean, 42 tests passing](docs/screenshots/02-agent-typecheck-and-tests.png)
+
+**Finding 1: the docs' own snippet does not compile, and the duplicate line is the cause:**
+
+![TS1117 from the docs' snippet](docs/screenshots/08-finding1-docs-snippet-ts1117.png)
+
+The rest, indexed:
 
 | | |
 |---|---|

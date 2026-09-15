@@ -9,9 +9,9 @@ Placeholders to fill before submitting: `<DID>`, `<REPO_URL>`, `<DOC_URL>`.
 
 ## vendor-guard: policy-gated vendor payouts on Terminal 3
 
-**Repo:** `<REPO_URL>` (public, MIT)
-**Google Doc:** `<DOC_URL>`
-**DID:** `<DID>`
+**Repo:** https://github.com/makinokennn/t3n-vendor-guard (public, MIT)
+**Google Doc:** `<DOC_URL>` — fill in once the Doc is created
+**DID:** `<DID>` — fill in from the claim page
 **Deadline met:** 2026-09-16
 
 ---
@@ -191,4 +191,4 @@ running what was reviewed before they change a line.
 > written up with repros, plus 3 we withdrew after re-checking. Every claim
 > re-verified against the live docs and a clean rebuild.
 >
-> Repo: `<REPO_URL>`
+> Repo: https://github.com/makinokennn/t3n-vendor-guard
