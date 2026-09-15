@@ -34,7 +34,7 @@ SHOTS = [
     ),
     (
         "03-capability-set",
-        "The capability set that is actually in the artifact (finding 8 in BUGS.md)",
+        "The capability set actually in the artifact (BUGS.md #3) — 4 host:, 14 wasi:",
         REPO / "contract",
         "echo '$ wasm-tools component wit target/wasm32-wasip2/release/vendor_guard.wasm | grep import' && "
         "wasm-tools component wit target/wasm32-wasip2/release/vendor_guard.wasm | grep import && "
@@ -46,8 +46,13 @@ SHOTS = [
         "04-artifact-hash",
         "The committed component is hash-verifiable without a Rust toolchain",
         REPO / "contract",
-        "ls -la target/wasm32-wasip2/release/vendor_guard.wasm && sha256sum target/wasm32-wasip2/release/vendor_guard.wasm",
-        10,
+        "echo '$ ls -l target/wasm32-wasip2/release/vendor_guard.wasm' && "
+        "ls -l target/wasm32-wasip2/release/vendor_guard.wasm && "
+        "echo && echo '$ sha256sum target/wasm32-wasip2/release/vendor_guard.wasm' && "
+        "sha256sum target/wasm32-wasip2/release/vendor_guard.wasm && "
+        "echo && echo 'README.md quotes this hash, so the committed artifact is verifiable' && "
+        "echo 'without a Rust toolchain:  grep e1876458 README.md'",
+        12,
     ),
     (
         "05-agent-cli",
@@ -71,31 +76,60 @@ SHOTS = [
         20,
     ),
     (
-        "08-bug1-contract-id-types",
-        "BUGS.md #1 — the contract id changes type between write and read paths",
-        REPO / "agent" / "node_modules" / "@terminal3" / "t3n-sdk" / "dist",
-        "echo '--- publish result: contract_id is number ---' && "
-        "grep -n -A6 'interface ContractRegisterResult' index.d.ts | grep -E 'contract_id|interface' && "
-        "echo && echo '--- the ACL grant consumes it as string ---' && "
-        "grep -n -A3 'interface WriterSet' index.d.ts | head -6 && "
-        "echo && echo '--- and the read APIs omit it entirely ---' && "
-        "grep -n -A12 'interface ListedContract' index.d.ts | grep -E 'interface|:' | head -12",
+        "08-bug1-docs-snippet-ts1117",
+        "BUGS.md #1 — the docs' own invoke-contract.md snippet does not compile",
+        REPO / "agent",
+        "mkdir -p /tmp/dupekey && cat > /tmp/dupekey/repro.ts <<'EOF'\n"
+        "// verbatim shape from walkthrough/invoke-contract.md lines 33-40\n"
+        "interface Cfg { trustAnchor: unknown; wasmComponent: unknown; handlers: unknown; }\n"
+        "declare function fetchTrustedManifest(e: string): Promise<unknown>;\n"
+        "const trustAnchor = await fetchTrustedManifest('testnet');\n"
+        "const wasmComponent = {};\n"
+        "const agentClient: Cfg = {\n"
+        "  trustAnchor: await fetchTrustedManifest('testnet'),\n"
+        "  wasmComponent,\n"
+        "  trustAnchor,\n"
+        "  handlers: {},\n"
+        "};\n"
+        "export {};\n"
+        "EOF\n"
+        "echo '$ cat -n repro.ts   # lines 33-40 of invoke-contract.md, verbatim'\n"
+        "cat -n /tmp/dupekey/repro.ts | sed -n '1,12p'\n"
+        "echo\n"
+        "echo '$ tsc --ignoreConfig --noEmit repro.ts'\n"
+        "./node_modules/.bin/tsc --ignoreConfig --noEmit --target es2022 --module esnext "
+        "/tmp/dupekey/repro.ts 2>&1 | sed 's|.*/tmp/dupekey/||'\n"
+        'echo "(exit ${PIPESTATUS[0]})"',
         30,
     ),
     (
-        "09-bug3-env-ignored",
-        "BUGS.md #3 — T3N_ENV / T3N_NODE_URL are ignored silently",
+        "09-finding2-import-pruning",
+        "BUGS.md #2(a) — declared 5 host imports, compiled 4, with no warning",
+        REPO,
+        "bash tools/repro-import-pruning.sh",
+        24,
+    ),
+    (
+        "10-finding4-obfuscation",
+        "BUGS.md #4 — obfuscated with no source maps, so static review gives false negatives",
+        REPO / "agent" / "node_modules" / "@terminal3" / "t3n-sdk" / "dist",
+        "echo '$ head -c 60 index.js'\n"
+        "head -c 60 index.js\n"
+        "echo\n"
+        "echo '$ ls *.map'\n"
+        "ls *.map 2>&1\n"
+        "echo\n"
+        "echo '$ grep -c T3N_ENV cli/index.js   # looks like absence of the feature...'\n"
+        "grep -c T3N_ENV cli/index.js\n"
+        "echo '   ...but see screenshot 11: the CLI does honour T3N_ENV.'",
+        16,
+    ),
+    (
+        "11-withdrawn-cli-honours-env",
+        "Withdrawn W1 — our probe was wrong: the CLI does honour T3N_ENV",
         REPO / "agent",
-        "cat > /tmp/p_env.mjs <<'EOF'\n"
-        "import * as sdk from '@terminal3/t3n-sdk';\n"
-        "process.env.T3N_ENV = 'production';\n"
-        "process.env.T3N_NODE_URL = 'https://example.invalid';\n"
-        "console.log('T3N_ENV=production, T3N_NODE_URL=https://example.invalid');\n"
-        "console.log('  getNodeUrl()  ->', sdk.getNodeUrl());\n"
-        "console.log('  => the env vars had no effect');\n"
-        "EOF\n"
-        "node /tmp/p_env.mjs 2>&1 | grep -vE '^const _0x|^\\s+at '",
-        14,
+        "bash ../tools/repro-cli-env.sh",
+        22,
     ),
 ]
 
