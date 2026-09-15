@@ -17,19 +17,25 @@ here is a stale-cache artefact.
 | # | Finding | Severity | Status |
 |---|---------|----------|--------|
 | 1 | The docs' own `invoke-contract.md` snippet does not compile (`TS1117`, duplicate key) — and a second duplicate in its import list | **High** | Confirmed |
-| 2 | A declared host import is silently pruned from the compiled artifact — the capability set the docs call authoritative is not what you declared | **High** | Confirmed |
+| 2 | A declared host import is silently pruned from the compiled artifact — the capability set the docs call authoritative is not what you declared (pruned direction only: never *more* than declared) | Medium | Confirmed |
 | 3 | `write-contract.md`'s host-interface versions (`2.2.0`/`1.2.0`) break the build; the page contradicts both the reference repo and the docs' own capability page (`2.1.0`/`1.0.0`) | **Medium** | Confirmed |
 | 4 | The SDK ships obfuscated with no source maps, so static review of it returns false negatives | **Medium** | Confirmed |
 | — | `contract_id` is `number` on register / `string` on invoke | — | **Withdrawn** — documented |
 | — | `T3N_ENV` is ignored by the SDK | — | **Withdrawn** — the CLI honours it; our probe was wrong |
 | — | Camoufox browser backend cannot install | — | **Withdrawn** — not a T3N component |
 
-Severity rubric — calibrated to the ADK's own surface:
+Severity rubric — calibrated to the ADK's own surface, and applied consistently:
 
-- **High** — a documented path fails outright, or a documented guarantee about the
-  security model does not hold, for a developer who follows the docs literally.
-- **Medium** — the path works, but the platform behaves differently from what the
-  docs state, in a way that misleads review or debugging.
+- **High** — following the docs literally fails, **and the docs offer no correct
+  alternative on that path** — the reader has to work out the fix themselves.
+- **Medium** — following the docs fails or misleads, **but the correct behaviour is
+  stated elsewhere in the docs, or named by the toolchain's own error message**, so
+  the reader recovers quickly.
+
+Under this rubric finding 1 is High (the walkthrough's snippet is uncopyable and
+nothing in the docs shows a working version), while findings 2–4 are Medium: each
+is a real divergence, but each is either self-announcing or contradicted by
+another page the same docs point you to.
 
 ## Why these four and not the rest
 
@@ -114,8 +120,10 @@ import list.
 
 ## 2. A declared host import is silently pruned from the compiled artifact
 
-**Severity: High** — the capability set is the security boundary, and it is not
-what the docs say it is.
+**Severity: Medium** — the capability set is not introspectable from the world
+file, and a dropped import is never announced. *(Not High: the divergence is
+always in the safe direction — never more capability than declared — and a
+mistyped name fails the build loudly. See the impact bounds below.)*
 
 The docs are unambiguous that the declared imports *are* the capability set:
 
@@ -166,16 +174,36 @@ with no diagnostic, then the declaration is not a reliable description of the
 capability set — which is precisely the property the sentence promises. A
 documented limitation would say "unused imports are dropped"; no page does.
 
-**Impact.**
+**Impact — and an honest bound on it.** We tried to establish the worst case and
+could not. Two candidate failure modes were tested:
 
-- A reviewer auditing `world.wit` counts capabilities that are not in the binary.
-- A typo'd interface name (`host:interfaces/kvstore@2.1.0`) fails silently: the
-  contract loses the capability with no error anywhere, and the reviewer reading
-  the world file believes it is present.
+- **A typo'd interface name** (`host:interfaces/kvstore@2.1.0` for `kv-store`):
+  this does **not** fail silently — it fails the build with
+  `interface not found in package`, pointing at the line. So the "silent loss"
+  scenario does not occur. *(An earlier draft of this report claimed it did; that
+  claim was wrong and is retracted here.)*
+- **An unused but correctly-named import:** pruned from the artifact with no
+  warning of any kind (verified against full build output — zero `warning` lines,
+  and the artifact still lists four).
+
+What remains is therefore narrower than "silent capability loss": the *practical*
+impact today is low, because the pruned direction is the safe one (fewer
+capabilities than declared, never more). The real cost is **auditability and
+diagnosis**:
+
+- A reviewer auditing `world.wit` sees five imports and has no way to know the
+  artifact carries four — the docs' sentence "your contract's entire capability
+  set" points them at the wrong artefact.
+- When an interface *is* dropped, nothing tells the developer. The build log is
+  clean. They find out by inspecting the component, if at all.
 - The docs' enforcement statement — *"The host refuses to load a contract that
-  imports an interface its tenant world does not provide"* — only covers the
-  extra-import case. It says nothing about declared-but-dropped, which is the
-  case that actually occurs.
+  imports an interface its tenant world does not provide"* — covers only the
+  extra-import case. Nothing states the declared-but-dropped case, which is the
+  one that occurs.
+
+We are rating this **Medium**, not High: it misleads review and diagnosis rather
+than breaking a documented path or weakening the trust boundary. Anyone building
+on this should treat the compiled component, not `world.wit`, as authoritative.
 
 **Suggested fix.** Have the ADK CLI or `wit-bindgen` warn on an unreferenced
 declared import, and state in the capability docs that the *compiled component*
