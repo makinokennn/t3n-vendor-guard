@@ -3,15 +3,15 @@
 This file is the submission *content*. Copy it into a Google Doc, set sharing to
 **Anyone with the link → Viewer**, and put that link in the Superteam form.
 
-Placeholders to fill before submitting: `<DID>`, `<REPO_URL>`, `<DOC_URL>`.
+Placeholders to fill before submitting: `<DOC_URL>`.
 
 ---
 
 ## vendor-guard: policy-gated vendor payouts on Terminal 3
 
 **Repo:** https://github.com/makinokennn/t3n-vendor-guard (public, MIT)
-**Google Doc:** `<DOC_URL>` — fill in once the Doc is created
-**DID:** `<DID>` — fill in from the claim page
+**Google Doc:** `<DOC_URL>` (fill in once the Doc is created)
+**DID:** `t3n:027196549993299f1ba80f717605e98e2f8595e2`
 **Deadline met:** 2026-09-16
 
 ---
@@ -127,7 +127,7 @@ contract emits the same 14).
 - `docs/THREAT-MODEL.md`: what this does *not* protect against
 - `docs/SETUP.md`: zero to a real payout, including the two footguns that cost us time
 - `docs/HANDOVER.md`: running it without us: day-1 checklist, what breaks first, cost
-- `BUGS.md`: 4 confirmed platform findings with reproductions, plus 3 we
+- `BUGS.md`: 5 confirmed platform findings with reproductions, plus 3 we
   withdrew after re-checking
 
 ### Bugs faced
@@ -140,6 +140,7 @@ Full write-up with reproductions in `BUGS.md`. Summary:
 | 2 | A declared host import is silently pruned from the compiled artifact: declare five, get four, with no warning anywhere, so the capability set the docs call authoritative is not what you declared. Practical impact is low (the pruned direction is the safe one, and a *typo'd* name fails the build loudly rather than silently); the cost is auditability and diagnosis | Medium |
 | 3 | `write-contract.md` tells you to vendor `host-interfaces-2.2.0`/`host-tenant-1.2.0`; following it literally fails to build (`package 'host:tenant@1.2.0' not found`). The page also contradicts the docs' own capability page and the reference repo, both of which use `2.1.0`/`1.0.0`, and the changelog claims this exact fix already landed | Medium |
 | 4 | The SDK ships fully obfuscated with no source maps, so every stack frame through it points into a single multi-hundred-KB line (we saw `index.esm.js:2:456604`), unreadable, and, as we found the hard way, static review of it produces false negatives | Medium |
+| 5 | `intro/about-t3.md`, the first page a reader hits, sends two of its four product cards to a `/documentation/products/*` section that does not exist in the docs at all (absent from `llms.txt`), and has a typo: `withoutc` for `without` | Low |
 
 Three findings we **withdrew** after re-checking, recorded in `BUGS.md` so they are
 not re-reported: the `contract_id` `number`/`string` split (the docs are explicit
@@ -187,7 +188,7 @@ running what was reviewed before they change a line.
 > HMAC-bound to the exact vendor/amount/memo, approver identity never enters WASM
 > memory, and bank details are reduced to last-4.
 >
-> 35 Rust tests + 42 TS tests, policy engine pure and host-free. 4 platform bugs
+> 35 Rust tests + 42 TS tests, policy engine pure and host-free. 5 platform bugs
 > written up with repros, plus 3 we withdrew after re-checking. Every claim
 > re-verified against the live docs and a clean rebuild.
 >

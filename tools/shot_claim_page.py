@@ -27,7 +27,7 @@ def main():
         page.goto(URL, wait_until="domcontentloaded", timeout=90_000)
         page.wait_for_timeout(6000)
 
-        landing = OUT / "13-adk-claim-page.png"
+        landing = OUT / "14-adk-claim-page.png"
         page.screenshot(path=str(landing), full_page=True)
         print(f"{landing.name:28} {landing.stat().st_size/1024:7.1f} KB")
 
@@ -58,7 +58,7 @@ def main():
                     continue
 
         page.wait_for_timeout(5000)
-        form = OUT / "14-claim-form-sso.png"
+        form = OUT / "15-claim-form-sso.png"
         page.screenshot(path=str(form), full_page=False)
         print(f"{form.name:28} {form.stat().st_size/1024:7.1f} KB  (form opened: {clicked})")
         browser.close()

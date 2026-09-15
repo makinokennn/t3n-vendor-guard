@@ -128,11 +128,18 @@ SHOTS = [
         "echo\n"
         "echo '$ grep -c T3N_ENV cli/index.js   # looks like absence of the feature...'\n"
         "grep -c T3N_ENV cli/index.js\n"
-        "echo '   ...but see screenshot 12: the CLI does honour T3N_ENV.'",
+        "echo '   ...but see screenshot 13: the CLI does honour T3N_ENV.'",
         16,
     ),
     (
-        "12-withdrawn-cli-honours-env",
+        "12-finding5-about-page",
+        "BUGS.md #5 — the About page's product links 404, and it has a typo",
+        REPO,
+        "bash tools/repro-about-page.sh",
+        28,
+    ),
+    (
+        "13-withdrawn-cli-honours-env",
         "Withdrawn W1 — our probe was wrong: the CLI does honour T3N_ENV",
         REPO / "agent",
         "bash ../tools/repro-cli-env.sh",

@@ -217,9 +217,10 @@ The rest, indexed:
 | [Finding 2 evidence](docs/screenshots/09-finding2-import-pruning.png) | declared 5 host imports, compiled 4, no warning |
 | [Finding 3 evidence](docs/screenshots/10-finding3-version-mismatch.png) | the docs' versions fail the build |
 | [Finding 4 evidence](docs/screenshots/11-finding4-obfuscation.png) | obfuscated bundle, no `.map` |
-| [Withdrawn finding](docs/screenshots/12-withdrawn-cli-honours-env.png) | the probe we retracted, and why |
-| [ADK claim page](docs/screenshots/13-adk-claim-page.png) | the sandbox landing page, reached without a checkpoint |
-| [Claim form + SSO](docs/screenshots/14-claim-form-sso.png) | the Google-gated claim form: the one step that is manual |
+| [Finding 5 evidence](docs/screenshots/12-finding5-about-page.png) | the About page's cards 404, and a typo |
+| [Withdrawn finding](docs/screenshots/13-withdrawn-cli-honours-env.png) | the probe we retracted, and why |
+| [ADK claim page](docs/screenshots/14-adk-claim-page.png) | the sandbox landing page, reached without a checkpoint |
+| [Claim form + SSO](docs/screenshots/15-claim-form-sso.png) | the Google-gated claim form: the one step that is manual |
 
 The last two are the step that cannot be scripted. The form is behind Google
 Sign-In with a work-email check, so claiming a tenant is a human action by

@@ -8,9 +8,10 @@ with the intent of disproving it.** Commands and raw output are included so each
 finding can be re-run. Where a finding turned out to be documented, warned about,
 or our own error, it was withdrawn. Three of them are at the bottom.
 
-Verified against the live docs on 2026-09-15: the three pages cited below are
-byte-identical to what `https://docs.terminal3.io/<path>.md` served, so nothing
-here is a stale-cache artefact.
+Verified against the live docs on 2026-09-15. The three pages that the first four
+findings rest on were diffed against what `https://docs.terminal3.io/<path>.md`
+served and are byte-identical, so nothing here is a stale-cache artefact. Finding
+5 was read off the live page directly.
 
 ## Summary
 
@@ -20,6 +21,7 @@ here is a stale-cache artefact.
 | 2 | A declared host import is silently pruned from the compiled artifact. The capability set the docs call authoritative is not what you declared (pruned direction only: never *more* than declared) | Medium | Confirmed |
 | 3 | `write-contract.md`'s host-interface versions (`2.2.0`/`1.2.0`) break the build; the page contradicts both the reference repo and the docs' own capability page (`2.1.0`/`1.0.0`) | **Medium** | Confirmed |
 | 4 | The SDK ships obfuscated with no source maps, so static review of it returns false negatives | **Medium** | Confirmed |
+| 5 | `intro/about-t3.md`'s two product cards link to a `/documentation/products/*` section that does not exist (absent from `llms.txt`), and the page has a typo: `withoutc` | Low | Confirmed |
 | — | `contract_id` is `number` on register / `string` on invoke | — | **Withdrawn**: documented |
 | — | `T3N_ENV` is ignored by the SDK | — | **Withdrawn**: the CLI honours it; our probe was wrong |
 | — | Camoufox browser backend cannot install | — | **Withdrawn**: not a T3N component |
@@ -37,7 +39,7 @@ nothing in the docs shows a working version), while findings 2–4 are Medium: e
 is a real divergence, but each is either self-announcing or contradicted by
 another page the same docs point you to.
 
-## Why these four and not the rest
+## Why these five and not the rest
 
 Two independent tests were applied to every candidate, and a finding is only
 listed if it passes both:
@@ -370,6 +372,59 @@ not the diagnostics' wording.
 **Suggested fix.** Ship source maps (or an unobfuscated `dist/`) and point
 `package.json` at them. Obfuscation buys little for a public-API client whose
 protocol surface is already documented.
+
+---
+
+## 5. The "About" page's product links 404, and it has a typo
+
+**Severity: Low.** Two independent defects on one short page, but the blast
+radius is small: nothing fails to build and nothing breaks at runtime.
+
+`intro/about-t3.md` ends with four `CardGroup` entries. Two of them point at a
+`/documentation/products/*` path that does not exist:
+
+```console
+$ sed -n '16,20p' about-t3.md        # live page, fetched 2026-09-15
+  <Card title="Identity verification for humans and agents" icon="face-viewfinder" href="/documentation/products/identity">
+  <Card title="Reusable KYC" icon="building-columns" href="/documentation/products/verify">
+
+$ curl -o /dev/null -w '%{http_code}\n' -L https://docs.terminal3.io/documentation/products/identity
+404
+$ curl -o /dev/null -w '%{http_code}\n' -L https://docs.terminal3.io/documentation/products/verify
+404
+```
+
+This is not a page that lives under a slightly different slug. The docs' own
+index never mentions the section at all: `llms.txt` lists 51 pages under three
+prefixes and none under `products/`:
+
+```console
+$ grep -oE 'docs\.terminal3\.io/[a-z0-9/-]+\.md' llms.txt | sed 's#docs.terminal3.io/##' | cut -d/ -f1 | sort | uniq -c | sort -rn
+     29 developers
+     15 t3n
+      4 intro
+$ grep -c 'products/' llms.txt
+0
+```
+
+The same page has a typo in the body text of the fourth card:
+
+```console
+$ sed -n '29p' about-t3.md
+    Verifiable national ID credentials that can be accepted at borders, airline check-ins, and public service access points withoutc physical document checks.
+```
+
+`withoutc` should read `without`. It renders as written.
+
+**Why it is worth reporting.** It is a one-line fix, and this is the first page
+a reader following the docs from the top will hit. Two of its four cards
+dead-end. The content they promise does exist: the index's `t3n/` section is 15
+pages deep. The cards simply do not point at it.
+
+**Negative control.** Both 404s were re-fetched with `-L` so a redirect that
+resolves cannot mask a live page, and the check was repeated against the whole
+`products/` prefix rather than the two exact slugs, so this is a missing section
+and not two unlucky URLs.
 
 ---
 
