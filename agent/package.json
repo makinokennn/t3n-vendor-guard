@@ -1,0 +1,29 @@
+{
+  "name": "vendor-guard-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Policy-gated vendor payouts for autonomous agents, on Terminal 3. The agent can request; only a human can authorise.",
+  "license": "MIT",
+  "bin": {
+    "vendor-guard": "./src/cli.ts",
+    "vendor-guard-mint": "./src/approver.ts",
+    "vendor-guard-admin": "./src/admin.ts"
+  },
+  "scripts": {
+    "test": "node --test 'test/**/*.test.ts'",
+    "typecheck": "tsc --noEmit",
+    "policy": "node src/cli.ts policy",
+    "mcp": "node src/cli.ts mcp"
+  },
+  "engines": {
+    "node": ">=22.6"
+  },
+  "dependencies": {
+    "@terminal3/t3n-sdk": "^5.17.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.5.1",
+    "typescript": "^7.0.2"
+  }
+}

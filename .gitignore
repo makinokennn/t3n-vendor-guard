@@ -1,0 +1,24 @@
+# Build artefacts
+target/
+*.wasm
+!contract/wit/**/*.wasm
+
+# Node
+node_modules/
+npm-debug.log*
+*.tsbuildinfo
+
+# Rust
+Cargo.lock.orig
+
+# Secrets — never commit these
+.env
+.env.*
+*.pem
+*.key
+secrets.json
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

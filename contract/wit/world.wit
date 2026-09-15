@@ -1,0 +1,66 @@
+/// vendor-guard — T3N tenant contract that puts a hard, auditable spending
+/// policy in front of vendor payouts, with the vendor's bank details resolved
+/// inside the enclave instead of travelling through the agent.
+///
+/// Imports required host capabilities:
+///   - tenant-context:        tenant DID (used to build the `z:<tid>:...` map names)
+///   - logging:               in-enclave decision log lines
+///   - kv-store:              reads `secrets` (vendor API key) and `state` (vendor registry)
+///   - http-with-placeholders: vendor payout POST — the body carries
+///                            `{{profile.<field>}}` markers the host resolves from
+///                            the paying employee's profile at dispatch time, so the
+///                            approver's identity never enters WASM memory.
+///
+/// Capability note: a capability is *only* the set of interfaces imported here —
+/// there is no separate manifest. Removing an import is the only way to remove
+/// a capability. Note that wit-bindgen prunes an import that no code path
+/// references, so the *effective* capability set is what the compiled component
+/// imports, not what is listed below: `wasm-tools component wit` on the built
+/// `.wasm` is the source of truth. The Rust `std` prelude also pulls in
+/// `wasi:cli/*` and `wasi:io/*` (see the README) — those are std's, not ours.
+package z:vendor-guard@0.1.0;
+
+world vendor-guard {
+    import host:tenant/tenant-context@1.0.0;
+    import host:interfaces/logging@2.1.0;
+    import host:interfaces/kv-store@2.1.0;
+    import host:interfaces/http-with-placeholders@2.1.0;  // payout (approver identity via placeholders)
+
+    export contracts;
+}
+
+interface contracts {
+    /// Standard 3-field envelope every node-callable contract uses.
+    /// `input`        — JSON request payload for the function.
+    /// `user-profile` — always None for tenant contracts (hardcoded at dispatch).
+    /// `context`      — JSON DynamicContext, node-minted and trusted.
+    record generic-input {
+        input:        option<list<u8>>,
+        user-profile: option<list<u8>>,
+        context:      option<list<u8>>,
+    }
+
+    /// Return the compiled-in policy limits plus the tenant's registered vendors.
+    /// Read-only, no egress. Input: `{}`.
+    /// Output: `{ contract_version, policy: {...}, vendors: [...] }`
+    get-policy: func(req: generic-input) -> result<list<u8>, string>;
+
+    /// Evaluate a payout intent against policy. **Never moves money.**
+    /// Input:  `{ vendor_id, amount, currency, memo? }`
+    /// Output: `{ decision, reasons: [...], policy_snapshot: {...}, vendor_id, amount, currency }`
+    ///
+    /// `decision` is one of `allow` | `deny` | `review`.
+    /// This is the function an agent should call before ever asking for a payout,
+    /// so a denied intent never reaches the vendor.
+    check-payout: func(req: generic-input) -> result<list<u8>, string>;
+
+    /// Execute a payout that policy already allowed.
+    /// Input:  `{ vendor_id, amount, currency, memo?, approval_ref }`
+    /// Output: `{ id, status, amount, currency, vendor_id, approval_ref }`
+    ///
+    /// Re-evaluates policy server-side (never trusts the caller's earlier
+    /// `check-payout`) and refuses with a policy reason when the intent no longer
+    /// passes. The approver's name/email are templated as `{{profile.*}}` markers
+    /// and resolved host-side, so they never enter WASM memory.
+    payout: func(req: generic-input) -> result<list<u8>, string>;
+}
