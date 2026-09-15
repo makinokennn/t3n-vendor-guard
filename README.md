@@ -285,6 +285,11 @@ The model sees exactly four tools: `get_policy`, `check_payout`, `pay_vendor`, `
 
 ### From the terminal
 
+The transcripts in this section show the shape of the interface. They were
+written to be read, not captured from a live tenant: the payout path needs a
+claimed tenant, which we did not have (see `docs/SETUP.md`, "What is not
+covered"). The exit codes and reason codes below are covered by the tests.
+
 ```bash
 vendor-guard policy
 vendor-guard check --vendor acme-cloud --amount 12500 --currency USD --memo "INV-2026-0042"

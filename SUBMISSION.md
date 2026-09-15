@@ -125,7 +125,7 @@ contract emits the same 14).
 - `README.md`: what it is, how to verify it, the layout
 - `docs/ARCHITECTURE.md`: the trust boundaries and the data flow
 - `docs/THREAT-MODEL.md`: what this does *not* protect against
-- `docs/SETUP.md`: zero to a real payout, including the two footguns that cost us time
+- `docs/SETUP.md`: zero to a payout, including the two footguns that cost us time
 - `docs/HANDOVER.md`: running it without us: day-1 checklist, what breaks first, cost
 - `BUGS.md`: 5 confirmed platform findings with reproductions, plus 3 we
   withdrew after re-checking
@@ -164,6 +164,27 @@ intended.
 ### Would we keep running it, or hand it over?
 
 **Hand it over, with a documented process, and we would stay available.**
+
+### What is verified, and what is not
+
+The one thing we could not do is the end-to-end run. Step 7 needs a claimed
+tenant, which needs a Google account and a work email. We reached the claim form
+(screenshots 14 and 15) but did not complete it, so **no contract here has been
+registered or invoked on testnet by us.**
+
+So, plainly:
+
+| Claim | Status |
+|---|---|
+| 35 Rust tests, 42 TS tests, clean `tsc --noEmit` | **Verified**, and re-runnable with no tenant |
+| The committed WASM is a real `wasm32-wasip2` build | **Verified**, hash in screenshot 4 |
+| The policy engine behaves as described | **Verified** by the test suite; it is pure and host-free |
+| The CLI output shown in the README | **Illustrative.** Written to show the shape of the interface, not captured from a live tenant |
+| Register and invoke a contract on testnet | **Not performed.** Blocked on the claim step |
+| Outbound HTTP reaching a real vendor API | **Not performed** |
+
+We would rather say this than let a reviewer assume the payout path was exercised.
+Everything above the line is reproducible from the repo in under a minute.
 
 We built it so that the handover is a checklist rather than an archaeology
 project, because a submission that only works in its author's head is not

@@ -1,7 +1,11 @@
-# Setup: from zero to a real payout
+# Setup: from zero to a payout
 
 This is the long form. If you only want to *read* the design, stop after the
 "Run the tests" section; everything below it needs a Terminal 3 tenant.
+
+Note up front: the author of this repo did not complete the tenant claim, so
+step 7 has not been run against a live cluster. See "What is *not* covered" at
+the bottom before treating any of it as verified.
 
 Three things run at three different privilege levels. Keeping them separate is
 the whole point of the design, so the setup is split the same way:
@@ -206,6 +210,24 @@ register a vendor is a tool an agent can call to redirect a payout to itself.
 
 ## What is *not* covered
 
-The end-to-end run in step 7 requires a claimed tenant, which requires a work
-email and a Google account. That step is not automated in this repo and the
-screenshots in the README are from a tenant that was set up by hand.
+**The end-to-end run has not been performed.** Step 7 needs a claimed tenant, and
+claiming one requires a Google account plus a work email. We reached the claim
+form (screenshots 14 and 15) but did not complete it, so no contract in this repo
+has been registered or invoked on testnet by us.
+
+What that means for the claims in this repo, stated plainly:
+
+- The **unit and integration tests are real**: 35 Rust tests on the host target,
+  42 TypeScript tests, and a clean `tsc --noEmit`. Those are what screenshots 1,
+  2 and 3 show, and they run without any tenant.
+- The **build is real**: the committed component was produced by
+  `cargo build --release --target wasm32-wasip2`, and its hash is in screenshot 4.
+- The **CLI output in the README is illustrative.** It was written to show the
+  shape of the interface, not captured from a live tenant. The exit codes and
+  reason codes it shows are exercised by the tests, but the payout path itself
+  has not been run against a real cluster.
+- The **policy engine is the part we are confident in**, because it is pure, has
+  no host dependencies, and is fully covered by the test suite.
+
+If you claim a tenant and run step 7, you will be the first to exercise the live
+path. `docs/HANDOVER.md` lists what we expect to break first.
