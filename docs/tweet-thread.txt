@@ -1,0 +1,25 @@
+THREAD (3 posts, each under 280 chars)
+=====================================
+
+1/3
+Built a vendor-payout agent on @terminal3io where the money-moving policy is a WASM contract in the TEE, not a prompt.
+
+The agent can propose a payout. It cannot authorise one.
+
+github.com/makinokennn/t3n-vendor-guard
+
+---
+
+2/3
+Why that split matters: approval tokens are HMAC-bound to the exact vendor, amount and memo. The approver's identity never enters WASM memory, and bank details are reduced to last-4.
+
+A prompt-injected model cannot reach any of it.
+
+---
+
+3/3
+35 Rust tests + 42 TS tests, policy engine pure and host-free.
+
+While building it I found 5 platform bugs with reproductions, and withdrew 3 more after re-checking them. All in BUGS.md.
+
+Repo: github.com/makinokennn/t3n-vendor-guard
