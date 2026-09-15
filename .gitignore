@@ -17,6 +17,10 @@ Cargo.lock.orig
 *.pem
 *.key
 secrets.json
+.t3n_env.sh
+.t3n_key
+.vg_approval_secret
+e2e-output.txt
 
 # OS / editor
 .DS_Store

@@ -8,9 +8,10 @@ take. Tick them off in order.
 | Requirement | Where it lives | Status |
 |---|---|---|
 | Public GitHub repo | https://github.com/makinokennn/t3n-vendor-guard | **Done** |
-| Screenshots | 15 files in `docs/screenshots/`, 3 embedded inline in the README | **Done** |
+| Screenshots | 16 files in `docs/screenshots/`, 4 embedded inline in the README | **Done** |
 | Bug report | `BUGS.md`: 5 confirmed with reproductions, 3 withdrawn | **Done** |
-| Public Google Doc | copy `SUBMISSION.md` into a Doc | **To do** |
+| Live run on testnet | `agent/src/e2e.ts`, screenshot 13 | **Done** |
+| Public Google Doc | https://docs.google.com/document/d/14PeCmH-n8MXSqTcAynYSo51ttDJxNlFnWE2axUFcmEo/edit | **Done** |
 | X post tagging @terminal3io | `docs/tweet.txt` | **To do** |
 
 The Google Doc must be set to **Anyone with the link -> Viewer**, and the same
@@ -42,7 +43,7 @@ rejected by the claim page, so if you got past it, this address is fine.
 **2. What is your DID generated from the page?**
 
 ```
-t3n:027196549993299f1ba80f717605e98e2f8595e2
+did:t3n:027196549993299f1ba80f717605e98e2f8595e2
 ```
 
 **3. Would you want to continue running this / pass it to us to run it?**
@@ -83,16 +84,12 @@ From the listing, in the order it states them:
 - [ ] Superteam form filled, three answers above copied in
 - [ ] X post published, tagging @terminal3io
 
-## If a tenant gets claimed later
+## What has been run
 
-Step 7 in `docs/SETUP.md` is the only unverified part. Once a tenant exists:
+The tenant was claimed by hand, then steps 1-7 of `docs/SETUP.md` ran against
+testnet: register (`contract_id` 1042), create-maps, add-vendor, seed-api-key,
+and invoke. `agent/src/e2e.ts` reproduces the invoke half and needs no writes.
 
-```bash
-cd agent
-export T3N_API_KEY=<from the claim page>
-npx tsx src/admin.ts whoami      # confirm the DID matches the one above
-```
-
-Then run the walkthrough's register and invoke steps, and update the "What is
-verified, and what is not" table in `SUBMISSION.md`. Until then that table is
-accurate and should not be edited to claim more.
+Still not exercised: a successful outbound vendor HTTP call. The attempt returns
+`host/http.egress_denied` because egress belongs to the paying user's grant, and
+a self-call has none. Do not claim a live payout in the submission.

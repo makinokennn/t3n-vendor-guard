@@ -214,6 +214,12 @@ The three that carry the most weight, inline so you don't have to go looking:
 
 ![TS1117 from the docs' snippet](docs/screenshots/08-finding1-docs-snippet-ts1117.png)
 
+**The contract running on testnet.** The policy allows a valid payout, denies an
+over-cap one and an unregistered vendor, and the host refuses the egress because
+the grant belongs to the paying user, not the contract:
+
+![The contract invoked on testnet](docs/screenshots/13-e2e-live-testnet.png)
+
 The rest, indexed:
 
 | | |
@@ -230,9 +236,10 @@ The rest, indexed:
 | [Finding 3 evidence](docs/screenshots/10-finding3-version-mismatch.png) | the docs' versions fail the build |
 | [Finding 4 evidence](docs/screenshots/11-finding4-obfuscation.png) | obfuscated bundle, no `.map` |
 | [Finding 5 evidence](docs/screenshots/12-finding5-about-page.png) | the About page's cards 404, and a typo |
-| [Withdrawn finding](docs/screenshots/13-withdrawn-cli-honours-env.png) | the probe we retracted, and why |
-| [ADK claim page](docs/screenshots/14-adk-claim-page.png) | the sandbox landing page, reached without a checkpoint |
-| [Claim form + SSO](docs/screenshots/15-claim-form-sso.png) | the Google-gated claim form: the one step that is manual |
+| [Live on testnet](docs/screenshots/13-e2e-live-testnet.png) | registered, seeded, invoked: allow, deny, and the host refusing egress |
+| [Withdrawn finding](docs/screenshots/14-withdrawn-cli-honours-env.png) | the probe we retracted, and why |
+| [ADK claim page](docs/screenshots/15-adk-claim-page.png) | the sandbox landing page, reached without a checkpoint |
+| [Claim form + SSO](docs/screenshots/16-claim-form-sso.png) | the Google-gated claim form: the one step that is manual |
 
 The last two are the step that cannot be scripted. The form is behind Google
 Sign-In with a work-email check, so claiming a tenant is a human action by

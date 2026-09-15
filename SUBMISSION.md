@@ -10,8 +10,8 @@ Placeholders to fill before submitting: `<DOC_URL>`.
 ## vendor-guard: policy-gated vendor payouts on Terminal 3
 
 **Repo:** https://github.com/makinokennn/t3n-vendor-guard (public, MIT)
-**Google Doc:** `<DOC_URL>` (fill in once the Doc is created)
-**DID:** `t3n:027196549993299f1ba80f717605e98e2f8595e2`
+**Google Doc:** https://docs.google.com/document/d/14PeCmH-n8MXSqTcAynYSo51ttDJxNlFnWE2axUFcmEo/edit
+**DID:** `did:t3n:027196549993299f1ba80f717605e98e2f8595e2`
 **Deadline met:** 2026-09-16
 
 ---
@@ -168,21 +168,27 @@ intended.
 
 ### What is verified, and what is not
 
-The one thing we could not do is the end-to-end run. Step 7 needs a claimed
-tenant, which needs a Google account and a work email. We reached the claim form
-(screenshots 14 and 15) but did not complete it, so **no contract here has been
-registered or invoked on testnet by us.**
+The tenant claim needs a Google account and a work email, which is why the
+screenshots of it (15 and 16) are the only manual step. Once claimed, everything
+else runs from the repo. `agent/src/e2e.ts` registers nothing and only reads and
+invokes, so it is safe to re-run.
 
 So, plainly:
 
 | Claim | Status |
 |---|---|
-| 36 Rust tests (35 unit + 1 doc-test), 42 TS tests, clean `tsc --noEmit` | **Verified**, and re-runnable with no tenant |
+| 36 Rust tests (35 unit + 1 doc-test), 42 TS tests, clean `tsc --noEmit` | **Verified**, re-runnable with no tenant |
 | The committed WASM is a real `wasm32-wasip2` build | **Verified**, hash in screenshot 4 |
 | The policy engine behaves as described | **Verified** by the test suite; it is pure and host-free |
-| The CLI output shown in the README | **Illustrative.** Written to show the shape of the interface, not captured from a live tenant |
-| Register and invoke a contract on testnet | **Not performed.** Blocked on the claim step |
-| Outbound HTTP reaching a real vendor API | **Not performed** |
+| The contract is deployed and runs on testnet | **Verified.** `contract_id` 1042 under `z:0271…:vendor-guard` @ 0.1.0 |
+| The contract reads its state and secrets maps in the enclave | **Verified** by `get-policy` returning the seeded vendor |
+| The policy allows and denies correctly on the live contract | **Verified**: `allow`, and `deny` with `amount_exceeds_single_cap` and `vendor_unknown` |
+| Outbound HTTP is refused without the user's grant | **Verified**: `host/http.egress_denied`, which is the design working |
+| A successful vendor payout over HTTP | **Not performed.** Needs a real allowed-hosts grant and a live endpoint |
+| The CLI output shown in the README | **Illustrative.** Written to show the interface, not captured from a live run |
+
+Two of those rows used to say "not performed". After the tenant was claimed we ran
+the full path, and `agent/src/e2e.ts` is the reproduction (screenshot 13).
 
 We would rather say this than let a reviewer assume the payout path was exercised.
 Everything above the line is reproducible from the repo in under a minute.

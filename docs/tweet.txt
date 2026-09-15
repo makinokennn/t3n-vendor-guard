@@ -1,7 +1,7 @@
-Vendor-payout agent on @terminal3io: the money-moving policy is a WASM contract in the TEE, not a prompt.
+Vendor-payout agent on @terminal3io: the payout policy is a WASM contract in the TEE, not a prompt.
 
 The agent can propose a payout. It cannot authorise one.
 
-36 Rust + 42 TS tests. 5 platform bugs written up, 3 withdrawn.
+Live on testnet. The host refuses egress the contract was never granted.
 
 github.com/makinokennn/t3n-vendor-guard

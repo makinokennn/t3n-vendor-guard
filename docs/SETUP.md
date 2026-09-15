@@ -3,9 +3,10 @@
 This is the long form. If you only want to *read* the design, stop after the
 "Run the tests" section; everything below it needs a Terminal 3 tenant.
 
-Note up front: the author of this repo did not complete the tenant claim, so
-step 7 has not been run against a live cluster. See "What is *not* covered" at
-the bottom before treating any of it as verified.
+Note up front: steps 1-7 were run against testnet, and `agent/src/e2e.ts` is the
+reproduction. The one thing not covered is a successful outbound vendor HTTP
+call, which needs a real allowed-hosts grant and a live endpoint. See "What is
+*not* covered" at the bottom.
 
 Three things run at three different privilege levels. Keeping them separate is
 the whole point of the design, so the setup is split the same way:
@@ -210,10 +211,17 @@ register a vendor is a tool an agent can call to redirect a payout to itself.
 
 ## What is *not* covered
 
-**The end-to-end run has not been performed.** Step 7 needs a claimed tenant, and
-claiming one requires a Google account plus a work email. We reached the claim
-form (screenshots 14 and 15) but did not complete it, so no contract in this repo
-has been registered or invoked on testnet by us.
+**The end-to-end run was performed against testnet.** The tenant was claimed by
+hand (that step needs a Google account and a work email; screenshots 15 and 16),
+then the contract was registered, its maps created, a vendor and the vendor API
+key seeded, and the contract invoked. `agent/src/e2e.ts` reproduces the invoke
+half; screenshot 13 is its output.
+
+The one path not exercised is a **successful outbound vendor HTTP call.** The
+attempt is refused with `host/http.egress_denied`, because egress is authorized
+by the paying user's grant and the self-call has none. That refusal is the
+security model working, but it does mean the request body was never actually
+delivered to a vendor.
 
 What that means for the claims in this repo, stated plainly:
 
@@ -223,10 +231,12 @@ What that means for the claims in this repo, stated plainly:
   2 and 3 show, and they run without any tenant.
 - The **build is real**: the committed component was produced by
   `cargo build --release --target wasm32-wasip2`, and its hash is in screenshot 4.
+- The **contract genuinely runs on testnet.** `get-policy` returned the seeded
+  vendor, and `check-payout` returned `allow` for a valid intent and `deny` with
+  `amount_exceeds_single_cap` / `vendor_unknown` for the bad ones.
 - The **CLI output in the README is illustrative.** It was written to show the
-  shape of the interface, not captured from a live tenant. The exit codes and
-  reason codes it shows are exercised by the tests, but the payout path itself
-  has not been run against a real cluster.
+  shape of the interface, not captured from a live run. The exit codes and reason
+  codes it shows are exercised by the tests and by `src/e2e.ts`.
 - The **policy engine is the part we are confident in**, because it is pure, has
   no host dependencies, and is fully covered by the test suite.
 

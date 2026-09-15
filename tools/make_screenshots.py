@@ -139,7 +139,14 @@ SHOTS = [
         28,
     ),
     (
-        "13-withdrawn-cli-honours-env",
+        "13-e2e-live-testnet",
+        "The contract running on testnet: registered, seeded, and invoked (self-call)",
+        REPO / "agent",
+        ". /root/.t3n_env.sh && npx tsx src/e2e.ts",
+        34,
+    ),
+    (
+        "14-withdrawn-cli-honours-env",
         "Withdrawn W1 — our probe was wrong: the CLI does honour T3N_ENV",
         REPO / "agent",
         "bash ../tools/repro-cli-env.sh",
