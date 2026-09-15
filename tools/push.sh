@@ -33,32 +33,43 @@ fi
 
 if [ -n "${GH_TOKEN:-}" ]; then
   # Create the repo (idempotent) and push over HTTPS with the token.
-  owner=$(curl -sS -H "Authorization: Bearer $GH_TOKEN" https://api.github.com/user \
+  owner=$(curl -sS -H "Authorization: Bearer ${GH_TOKEN}" https://api.github.com/user \
           | sed -n 's/.*"login"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
   [ -n "$owner" ] || { echo "could not resolve the token's user" >&2; exit 1; }
   echo "authenticated as: $owner"
 
-  code=$(curl -sS -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $GH_TOKEN" \
+  code=$(curl -sS -o /dev/null -w '%{http_code}' -H "Authorization: Bearer ${GH_TOKEN}" \
          "https://api.github.com/repos/$owner/$REPO_NAME")
   if [ "$code" = "404" ]; then
-    curl -sS -X POST -H "Authorization: Bearer $GH_TOKEN" \
+    body=$(curl -sS -X POST -H "Authorization: Bearer ${GH_TOKEN}" \
       -H "Accept: application/vnd.github+json" \
       https://api.github.com/user/repos \
-      -d "{\"name\":\"$REPO_NAME\",\"description\":\"$DESC\",\"private\":$([ "$VISIBILITY" = public ] && echo false || echo true)}" \
-      >/dev/null
-    echo "created $owner/$REPO_NAME ($VISIBILITY)"
+      -d "{\"name\":\"$REPO_NAME\",\"description\":\"$DESC\",\"private\":$([ "$VISIBILITY" = public ] && echo false || echo true)}")
+    # Do not claim success without checking: a fine-grained PAT scoped to
+    # "only select repositories" cannot create repos and returns 403 here.
+    if printf '%s' "$body" | grep -q '"full_name"'; then
+      echo "created $owner/$REPO_NAME ($VISIBILITY)"
+    else
+      echo "could not create $owner/$REPO_NAME" >&2
+      printf '%s' "$body" | sed -n 's/.*"message"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/  GitHub said: \1/p' >&2
+      echo "  fine-grained tokens need 'Administration: Read and write' (to create)" >&2
+      echo "  and 'Contents: Read and write' (to push), on this repository." >&2
+      exit 1
+    fi
   else
     echo "repo $owner/$REPO_NAME already exists"
   fi
 
+  # Always scrub the token from .git/config, even if the push fails.
+  scrub() { git remote set-url origin "https://github.com/$owner/$REPO_NAME.git" 2>/dev/null || true; }
+  trap scrub EXIT
+
   git remote remove origin 2>/dev/null || true
   git remote add origin "https://$owner:$GH_TOKEN@github.com/$owner/$REPO_NAME.git"
   git push -u origin HEAD:main
-  # do not leave the token in .git/config
-  git remote set-url origin "https://github.com/$owner/$REPO_NAME.git"
   echo
   echo "done: https://github.com/$owner/$REPO_NAME"
-  echo "NOTE: run the push again yourself later; the credential is not stored."
+  echo "NOTE: the token was used but never stored. Rotate it if it was shared."
   exit 0
 fi
 
