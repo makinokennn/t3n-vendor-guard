@@ -199,6 +199,12 @@ and you get the same pictures from your own machine.
 | [Approver CLI](docs/screenshots/07-approver-cli.png) | minting is not reachable by the agent |
 | [Bug 1 evidence](docs/screenshots/08-bug1-contract-id-types.png) | the `contract_id` type mismatch |
 | [Bug 3 evidence](docs/screenshots/09-bug3-env-ignored.png) | env vars ignored silently |
+| [ADK claim page](docs/screenshots/10-adk-claim-page.png) | the sandbox landing page, reached without a checkpoint |
+| [Claim form + SSO](docs/screenshots/11-claim-form-sso.png) | the Google-gated claim form: the one step that is manual |
+
+The last two are the step that cannot be scripted. The form is behind Google
+Sign-In with a work-email check, so claiming a tenant is a human action by
+design — see `docs/SETUP.md` step 3.
 
 ### Check the capability set yourself
 

@@ -95,6 +95,9 @@ the global policy but never raise it above.
 
 ### Verification
 
+Screenshots in `docs/screenshots/` are generated from real command output by
+`tools/make_screenshots.py`, so a reviewer can reproduce them:
+
 ```
 contract:  cargo test --target x86_64-unknown-linux-gnu   35 passed
 agent:     npx tsc --noEmit                               exit 0
