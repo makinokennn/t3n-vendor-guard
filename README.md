@@ -182,6 +182,24 @@ wasm:      vendor_guard.wasm  217 KB   sha256 e1876458…
 
 Then publish and run for real: [`docs/SETUP.md`](docs/SETUP.md).
 
+### Evidence
+
+Every image in [`docs/screenshots/`](docs/screenshots) is a real command's output,
+rendered by [`tools/make_screenshots.py`](tools/make_screenshots.py) — re-run it
+and you get the same pictures from your own machine.
+
+| | |
+|---|---|
+| [Contract tests](docs/screenshots/01-contract-tests.png) | 35 tests, host target, no enclave |
+| [Agent typecheck + tests](docs/screenshots/02-agent-typecheck-and-tests.png) | `tsc --noEmit` clean, 42 pass |
+| [Capability set](docs/screenshots/03-capability-set.png) | what the artifact *actually* imports (finding 8) |
+| [Artifact hash](docs/screenshots/04-artifact-hash.png) | the committed component, hash-verifiable |
+| [Agent CLI](docs/screenshots/05-agent-cli.png) | 4 commands; only `pay` moves money |
+| [Admin CLI](docs/screenshots/06-admin-cli.png) | the tenant owner's separate binary |
+| [Approver CLI](docs/screenshots/07-approver-cli.png) | minting is not reachable by the agent |
+| [Bug 1 evidence](docs/screenshots/08-bug1-contract-id-types.png) | the `contract_id` type mismatch |
+| [Bug 3 evidence](docs/screenshots/09-bug3-env-ignored.png) | env vars ignored silently |
+
 ### Check the capability set yourself
 
 A contract's capabilities *are* its import list — there is no separate manifest. The
