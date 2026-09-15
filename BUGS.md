@@ -2,46 +2,63 @@
 
 Findings collected while building `vendor-guard` against `@terminal3/t3n-sdk@5.17.0`,
 the published docs (`docs.terminal3.io`), and the reference repo `z-tenant-flight`.
-Environment: Linux, Node v26.7.0, npm 11.19.0, Rust/wasm32-wasip2, SDK 5.17.0.
 
-Every entry was **reproduced**, not inferred. Commands and raw output are included
-so each finding can be re-checked.
+**Every entry was reproduced from a primary source, and every claim was re-checked
+with the intent of disproving it.** Commands and raw output are included so each
+finding can be re-run. Where a finding turned out to be documented, warned about,
+or our own error, it was withdrawn — three of them are at the bottom.
 
-Three findings from earlier drafts were **withdrawn** after re-checking — including
-one this file originally ranked Medium. They are kept at the bottom, because a bug
-report is only worth reading if it says what it got wrong.
+Verified against the live docs on 2026-09-15: the three pages cited below are
+byte-identical to what `https://docs.terminal3.io/<path>.md` served, so nothing
+here is a stale-cache artefact.
 
 ## Summary
 
 | # | Finding | Severity | Status |
 |---|---------|----------|--------|
-| 1 | The docs' own `invoke-contract.md` snippet does not compile (`TS1117`, duplicate key) | **High** | Confirmed |
-| 2 | The compiled capability set differs from `world.wit` silently, and `std` adds 14 `wasi:*` imports | **Medium** | Confirmed |
-| 3 | Docs pin WIT host packages `2.2.0`/`1.2.0`; the reference repo deliberately ships `2.1.0`/`1.0.0` | **Medium** | Confirmed |
-| 4 | The SDK ships obfuscated with no source maps — which also makes static review of it unsound | **Medium** | Confirmed |
-| — | `T3N_ENV` is documented but ignored by the SDK | — | **Withdrawn** — the CLI honours it; our probe was wrong |
+| 1 | The docs' own `invoke-contract.md` snippet does not compile (`TS1117`, duplicate key) — and a second duplicate in its import list | **High** | Confirmed |
+| 2 | A declared host import is silently pruned from the compiled artifact — the capability set the docs call authoritative is not what you declared | **High** | Confirmed |
+| 3 | `write-contract.md`'s host-interface versions (`2.2.0`/`1.2.0`) break the build; the page contradicts both the reference repo and the docs' own capability page (`2.1.0`/`1.0.0`) | **Medium** | Confirmed |
+| 4 | The SDK ships obfuscated with no source maps, so static review of it returns false negatives | **Medium** | Confirmed |
 | — | `contract_id` is `number` on register / `string` on invoke | — | **Withdrawn** — documented |
+| — | `T3N_ENV` is ignored by the SDK | — | **Withdrawn** — the CLI honours it; our probe was wrong |
 | — | Camoufox browser backend cannot install | — | **Withdrawn** — not a T3N component |
 
-Severity rubric — calibrated to the ADK's own surface, not to a generic scale:
+Severity rubric — calibrated to the ADK's own surface:
 
-- **High** — a documented path fails outright for a developer who follows it
-  literally (nothing works, and the failure is misattributed to their code).
+- **High** — a documented path fails outright, or a documented guarantee about the
+  security model does not hold, for a developer who follows the docs literally.
 - **Medium** — the path works, but the platform behaves differently from what the
-  docs lead you to expect, silently or with real operational cost.
-- **Low** — cosmetic or docs-only.
+  docs state, in a way that misleads review or debugging.
 
-Only one finding reaches High, and it is the one that breaks the copy-paste path.
+## Why these four and not the rest
+
+Two independent tests were applied to every candidate, and a finding is only
+listed if it passes both:
+
+1. **Reproducible from a primary source.** Re-running the quoted command on a
+   clean copy produces the quoted output. No claim rests on inference from a
+   single grep, on a screenshot we cannot regenerate, or on our own memory.
+2. **Not the documented behaviour.** If a page states the behaviour, warns about
+   it, or the SDK emits a `console.warn`, it is not a defect and is not counted —
+   regardless of how surprising it is.
+
+Both tests were run adversarially: for each finding we first tried to find the
+reason it was *not* a bug. Finding 3 was nearly withdrawn on the strength of the
+changelog (see below); it survived only because the live page still fails.
 
 ---
 
 ## 1. The docs' own walkthrough snippet does not compile
 
-**Severity: High** — the copy-paste path from the official docs fails to build.
+**Severity: High** — the last step of the walkthrough is uncopyable.
 
-`walkthrough/invoke-contract.md` builds a client like this (lines 33–40, verbatim):
+`walkthrough/invoke-contract.md` builds the agent's client with an object literal
+that passes `trustAnchor` twice. The snippet is reproduced verbatim from the live
+page (line numbers are within the snippet):
 
-```ts
+```console
+$ sed -n '33,40p' invoke-contract.md        # live page, fetched 2026-09-15
 const agentClient = new T3nClient({
   trustAnchor: await fetchTrustedManifest("testnet"),
   wasmComponent,   // node URL resolved from setEnvironment() — see set-up-dev-env
@@ -52,178 +69,136 @@ const agentClient = new T3nClient({
 });
 ```
 
-`trustAnchor` appears **twice in the same object literal** — once as an inline
-`await fetchTrustedManifest("testnet")` (line 34), once as the local `const`
-declared earlier in the file (line 36). TypeScript rejects this outright:
+TypeScript rejects it:
 
 ```console
-$ cat -n repro.ts
-     1  // verbatim shape from walkthrough/invoke-contract.md lines 33-40
-     2  interface Cfg { trustAnchor: unknown; wasmComponent: unknown; handlers: unknown; }
-     3  declare function fetchTrustedManifest(e: string): Promise<unknown>;
-     4  const trustAnchor = await fetchTrustedManifest("testnet");
-     5  const wasmComponent = {};
-     6  const agentClient: Cfg = {
-     7    trustAnchor: await fetchTrustedManifest("testnet"),
-     8    wasmComponent,
-     9    trustAnchor,
-    10    handlers: {},
-    11  };
-    12  export {};
-$ tsc --ignoreConfig --noEmit --target es2022 --module esnext repro.ts
-repro.ts(9,3): error TS1117: An object literal cannot have multiple properties with the same name.
-(exit 1)
+$ ./node_modules/.bin/tsc --ignoreConfig --noEmit --target es2022 --module esnext repro.ts
+repro.ts(4,3):  error TS2300: Duplicate identifier 'fetchTrustedManifest'.
+repro.ts(10,3): error TS2300: Duplicate identifier 'fetchTrustedManifest'.
+repro.ts(21,3): error TS1117: An object literal cannot have multiple properties with the same name.
+exit 1
 ```
 
-`TS1117` is not a style warning, it is a hard compile error. The same duplicated
-shape is repeated at lines 69–72 of that file for the `userClient` literal, so
-**both** clients in the walkthrough are uncopyable:
+`TS1117` is the object-literal duplicate; the two `TS2300`s are a *second*
+duplicate on the same page — `fetchTrustedManifest` is imported twice in the
+import list at the top of the file (lines 19 and 25). So the snippet has two
+independent copy-paste defects.
 
-```ts
-const userClient = new T3nClient({
-  trustAnchor: await fetchTrustedManifest("testnet"),
-  wasmComponent,
-  trustAnchor, // same anchor as agentClient above — one environment, one manifest
-  handlers: { EthSign: metamask_sign(userAddress, undefined, userKey) },
-});
+**Negative control.** Removing only the duplicated `trustAnchor,` line makes
+`TS1117` disappear, leaving every other error untouched — proving that line, and
+not some environmental difference, is the cause:
+
+```console
+$ sed '21d' repro.ts > repro-fixed.ts
+$ tsc --ignoreConfig --noEmit --target es2022 --module esnext repro-fixed.ts | grep -c TS1117
+0
 ```
 
-**Impact.** This is the *last* step of the walkthrough — the point at which the
-developer believes everything works. The error message (`TS1117`) points at an
-object literal, not at the docs, so the natural conclusion is "my code is wrong"
-rather than "the example is wrong". `trustAnchor` is also *required* (omitting it
-throws, and that is documented loudly), which makes a reader reluctant to delete
-either occurrence — the duplication reads as load-bearing.
+**Why it is not by design.** A snippet in a walkthrough is meant to be pasted and
+run. There is no reading under which an object literal with a repeated key is
+intentional, and the page's own surrounding prose says the value is "reused below
+for every client in this file" — the author's intent was clearly the single
+`trustAnchor` binding declared on the line above, not a second inline fetch.
 
-**Suggested fix.** Keep the local variable and drop the inline fetch:
+**Why it still matters after a partial fix.** The changelog's 2026-09-08 entry
+records fixing "a duplicated code sample in Quickstart". The Quickstart page is
+indeed fixed on the live site (`grep` shows one `trustAnchor` key there). This
+page was not, so the same class of defect remains in the very next page of the
+same walkthrough.
 
-```ts
-const agentClient = new T3nClient({
-  trustAnchor,                       // declared once at the top of the file
-  wasmComponent,
-  handlers: { EthSign: metamask_sign(agentAddress, undefined, agentKey) },
-});
-```
-
-and do the same at lines 69–72. Better still, run the docs' snippets through
-`tsc` in CI — this class of error is mechanical to catch.
+**Suggested fix.** Delete the `trustAnchor,` line (or the inline
+`trustAnchor: await fetchTrustedManifest("testnet")` line) and de-duplicate the
+import list.
 
 ---
 
-## 2. The compiled capability set differs from `world.wit`, silently
+## 2. A declared host import is silently pruned from the compiled artifact
 
-**Severity: Medium** — a security-relevant invariant that does not hold as stated.
+**Severity: High** — the capability set is the security boundary, and it is not
+what the docs say it is.
 
-The ADK is explicit that capabilities *are* the import list, with no separate
-manifest:
+The docs are unambiguous that the declared imports *are* the capability set:
 
-> Import only the host interfaces you use — they are your contract's entire
-> capability set. The host refuses to load a contract that imports an interface
-> its tenant world does not provide.
+> "The interfaces you import here are your contract's entire capability set —
+> there is no separate manifest." — `walkthrough/write-contract.md`
 
-That framing invites a reviewer to audit `wit/world.wit` and conclude they have
-seen the contract's full authority. Two things break that, in opposite directions.
+> "Capabilities are determined entirely by the host interfaces imported in your
+> contract's `world.wit`." — `tips/capabilities-from-wit-import.md`
 
-### (a) An unused declared import is silently pruned from the artifact
+That is not what happens. `wit-bindgen` drops any declared import that no code
+path references, and the build says nothing about it.
 
-Controlled experiment — add one import to `world.wit` that no code path calls,
-then build:
+**Controlled experiment.** Starting from the reference layout, declare four
+imports and build — four are compiled in:
 
 ```console
 $ grep -c "import host:" wit/world.wit
-5                                    # incl. host:interfaces/http@2.1.0 (unused on purpose)
-
+4
 $ cargo build --release --target wasm32-wasip2
-    Finished `release` profile [optimized] target(s) in 33.35s
+    Finished `release` profile [optimized] target(s) in 30.36s
+$ wasm-tools component wit target/wasm32-wasip2/release/vendor_guard.wasm | grep -c "import host:"
+4
+```
 
-$ wasm-tools component wit target/wasm32-wasip2/release/*.wasm | grep "import host:"
+Now add `host:interfaces/http@2.1.0`, which no code path calls, and rebuild:
+
+```console
+$ grep -c "import host:" wit/world.wit
+5
+$ grep -rn "interfaces::http\b" src/            # nothing references it
+$ cargo build --release --target wasm32-wasip2
+    Finished `release` profile [optimized] target(s) in 3.00s
+$ wasm-tools component wit target/wasm32-wasip2/release/vendor_guard.wasm | grep "import host:"
   import host:tenant/tenant-context@1.0.0;
   import host:interfaces/logging@2.1.0;
   import host:interfaces/kv-store@2.1.0;
   import host:interfaces/http-with-placeholders@2.1.0;
 ```
 
-Declared five, compiled four. No warning, no error, no note in the build log.
-`wit-bindgen` drops unreferenced imports.
+Declared five, compiled four, no warning, no error, no build-log note. The
+`http` import is simply gone. In this direction the artifact has *less* authority
+than declared — but the mechanism is silent and symmetric, and the other
+direction is the dangerous one.
 
-The pruning direction is benign here — the artifact has *less* authority than the
-world file claims. But the mechanism is symmetric and silent, which is what makes
-it worth reporting:
+**Why it is not by design.** "Your contract's entire capability set" is a claim
+about what the contract *can do*. If the artifact can differ from the declaration
+with no diagnostic, then the declaration is not a reliable description of the
+capability set — which is precisely the property the sentence promises. A
+documented limitation would say "unused imports are dropped"; no page does.
 
-- a reviewer auditing `world.wit` **over**-counts authority, and cannot tell which
-  declared imports are real;
-- a typo'd interface name (`host:interfaces/kvstore@2.1.0`) fails **open in the
-  reviewer's mind and closed in the artifact** — the contract simply loses the
-  capability, with no diagnostic anywhere;
-- the docs' statement "the host refuses to load a contract that imports an
-  interface its tenant world does not provide" only covers the *extra* case. It
-  says nothing about declared-but-dropped, which is the case that actually occurs.
+**Impact.**
 
-### (b) The Rust `std` prelude adds 14 `wasi:*` imports the author never wrote
+- A reviewer auditing `world.wit` counts capabilities that are not in the binary.
+- A typo'd interface name (`host:interfaces/kvstore@2.1.0`) fails silently: the
+  contract loses the capability with no error anywhere, and the reviewer reading
+  the world file believes it is present.
+- The docs' enforcement statement — *"The host refuses to load a contract that
+  imports an interface its tenant world does not provide"* — only covers the
+  extra-import case. It says nothing about declared-but-dropped, which is the
+  case that actually occurs.
 
-The same component also imports:
+**Suggested fix.** Have the ADK CLI or `wit-bindgen` warn on an unreferenced
+declared import, and state in the capability docs that the *compiled component*
+(not the world file) is the authoritative capability set.
 
-```console
-$ wasm-tools component wit …/vendor_guard.wasm | grep -c 'import wasi:'
-14
-
-$ wasm-tools component wit …/vendor_guard.wasm | grep 'import wasi:'
-  import wasi:io/poll@0.2.9;
-  import wasi:clocks/monotonic-clock@0.2.9;
-  import wasi:io/error@0.2.9;
-  import wasi:io/streams@0.2.9;
-  import wasi:cli/stdout@0.2.9;
-  import wasi:cli/stderr@0.2.9;
-  import wasi:cli/stdin@0.2.9;
-  import wasi:cli/environment@0.2.9;
-  import wasi:cli/exit@0.2.9;
-  import wasi:cli/terminal-input@0.2.9;
-  import wasi:cli/terminal-output@0.2.9;
-  import wasi:cli/terminal-stdin@0.2.9;
-  import wasi:cli/terminal-stdout@0.2.9;
-  import wasi:cli/terminal-stderr@0.2.9;
-```
-
-`stdin`, `environment`, `exit` and the `terminal-*` family are present in a
-contract that reads no stdin, takes no arguments, and returns via its exported
-function. This is not specific to our crate: the reference contract
-`z-tenant-flight`, with a byte-identical `[dependencies]` block, emits the same
-14. The cause is that neither `Cargo.toml` sets `#![no_std]`, so `std`'s WASI
-glue is linked in wholesale.
-
-**Impact.** For a platform whose pitch is *capability-minimised execution inside a
-TEE*, "your contract's entire capability set is its import list" is materially
-misleading when 14 interfaces are contributed by the toolchain rather than the
-author, and one author-declared import silently disappears. A reviewer comparing
-the world file to a compliance checklist will get the wrong answer in both
-directions. It also inflates the artifact (217 KB, of which the WASI/std glue is a
-large fraction).
-
-**Suggested fix.** Document that the **compiled component**, not the world file,
-is the capability set; have the ADK CLI (or `wit-bindgen`) warn on an unreferenced
-declared import; ship a `no_std` variant of the walkthrough's `Cargo.toml`; and
-state in the capability docs which imports are author-controlled versus
-toolchain-injected.
-
-**Workaround used in this repo.** None for (b) — we follow the documented
-`Cargo.toml` exactly, so the artifact matches the reference contract. For (a), we
-keep `world.wit` to the four imports actually referenced, and the README tells the
-reader to verify against the binary rather than the source:
-
-```
-wasm-tools component wit target/wasm32-wasip2/release/vendor_guard.wasm
-```
+*(A separate, weaker observation about the same page: the Rust `std` prelude also
+links in 14 `wasi:*` imports the author never wrote. That one is **not** counted
+as a finding — the reference contract, with a byte-identical `[dependencies]`
+block, emits the same 14, so it is the toolchain baseline, not a platform defect.
+It is noted only because it reinforces the point above: the import list in
+`world.wit` is not the capability set.)*
 
 ---
 
-## 3. Documented WIT host-package versions do not match the reference repo
+## 3. Documented host-interface versions break the build, and contradict the docs' own capability page
 
-**Severity: Medium** — a fresh project follows the docs into a version mismatch.
+**Severity: Medium** — a fresh project that follows this page does not build.
 
-`walkthrough/write-contract.md` states, and shows in the example world:
+`walkthrough/write-contract.md` tells you which versions to vendor and shows them
+in the example world:
 
 ```console
-$ sed -n '42p;52,56p' developers_adk_get-started_walkthrough_write-contract.md
+$ sed -n '42p;52,56p' write-contract.md          # live page, fetched 2026-09-15
 The packages under `wit/deps/` define the host ABI your contract links against —
 vendor the versions your target cluster provides (here, `host-interfaces-2.2.0/`
 and `host-tenant-1.2.0/`).
@@ -234,24 +209,42 @@ and `host-tenant-1.2.0/`).
   import host:interfaces/http-with-placeholders@2.2.0;  // booking (PII via placeholders)
 ```
 
-The repo the same walkthrough tells you to clone (`z-tenant-flight`) ships — and
-its `world.wit` declares — something else:
+Following that literally fails. Editing the world to those versions and building:
 
 ```console
-$ ls wit/deps/
-host-interfaces-2.1.0  host-outbox-1.0.0  host-tenant-1.0.0
-
-$ grep -E "^package|import host:" wit/world.wit
-package z:tenant-flight@0.4.0;
-    import host:tenant/tenant-context@1.0.0;
-    import host:interfaces/logging@2.1.0;
-    import host:interfaces/kv-store@2.1.0;
-    import host:interfaces/http@2.1.0;                    // search (no PII)
-    import host:interfaces/http-with-placeholders@2.1.0;  // booking (PII via placeholders)
+$ cargo build --release --target wasm32-wasip2
+error: failed to resolve directory while parsing WIT for path [wit]
+       Caused by:
+         package 'host:tenant@1.2.0' not found. known packages:
+           host:interfaces@2.1.0
+           host:tenant@1.0.0
+           z:vendor-guard@0.1.0
+            --> wit/world.wit:24:12
+             |
+          24 |     import host:tenant/tenant-context@1.2.0;
+             |            ^----------
 ```
 
-The `2.1.0` pin is not an oversight. The vendored package says so in its own
-header:
+The toolchain's own error lists the packages that *do* exist: `2.1.0` and
+`1.0.0`. So the page's version numbers are not merely stale relative to the
+reference repo — they are unbuildable in a project set up exactly as the
+walkthrough instructs.
+
+**The docs contradict each other.** The page dedicated to this exact topic uses
+the versions that work:
+
+```console
+$ sed -n '13,19p' tips/capabilities-from-wit-import.md
+world your-contract {
+  import host:tenant/tenant-context@1.0.0;
+  import host:interfaces/logging@2.1.0;
+  import host:interfaces/kv-store@2.1.0;
+  import host:interfaces/http@2.1.0;   // ← opting into outbound HTTP
+}
+```
+
+Those match the reference repo the same walkthrough tells you to clone, whose
+vendored package explains the pin in its own header:
 
 ```console
 $ head -5 wit/deps/host-interfaces-2.1.0/package.wit
@@ -262,19 +255,27 @@ $ head -5 wit/deps/host-interfaces-2.1.0/package.wit
 // (`profile-ref`, `vp.verify`, `clock`,
 ```
 
-**Impact.** The walkthrough's prose and code example contradict the repo the same
-walkthrough instructs you to clone. A developer who follows the example edits
-`world.wit` to `@2.2.0`, finds no `host-interfaces-2.2.0/` directory to vendor,
-and — if they resolve the imports against the `2.1.0` package anyway — hits a
-version mismatch that is reported by the component tooling rather than by the
-docs. The correct answer (match the reference repo, whose pins are deliberate) is
+So: two docs pages give two different version sets for the same interfaces, and
+the one in the step-by-step walkthrough is the wrong one. The correct answer is
 discoverable only by reading a comment inside a vendored file.
 
-**Suggested fix.** Pin the walkthrough's prose and example to the versions the
-reference repo actually vendors (`host-interfaces-2.1.0`, `host-tenant-1.0.0`),
-and state the rule the package comment already encodes: *the WIT package version
-must match the cluster's host ABI, and the reference repo's pins are the ones the
-hosted clusters serve.*
+**Why it is not by design.** `2.1.0` is deliberate (the package says so); `2.2.0`
+is an inconsistency. A reader following the walkthrough hits a build failure
+whose message points at their own `world.wit`, not at the docs that told them to
+write it.
+
+**Checklist for the fix — the changelog says this was already done, but it was not.**
+The 2026-09-08 changelog entry states it fixed "outdated host-interface version
+numbers in Write your first TEE contract". The live page still carries `2.2.0` and
+`1.2.0` (fetched and byte-compared on 2026-09-15), so either the fix did not land
+or it was reverted. Grepping the live page for version strings returns exactly:
+`host-interfaces-2.2.0`, `host-tenant-1.2.0`, `@1.2.0`, and four `@2.2.0` — the
+same values as before the claimed fix.
+
+**Suggested fix.** Change `write-contract.md` lines 42 and 52–56 to
+`host-interfaces-2.1.0` / `host-tenant-1.0.0` and the matching `@2.1.0` /
+`@1.0.0` import versions, to agree with `capabilities-from-wit-import.md` and the
+reference repo.
 
 ---
 
@@ -296,172 +297,103 @@ $ ls node_modules/@terminal3/t3n-sdk/dist/*.map
 ls: cannot access '*.map': No such file or directory
 ```
 
-Every identifier is mangled (`_0x503ddc`, `_0x393e`) and no `.map` files ship.
-A runtime failure therefore surfaces as a stack trace of mangled frames. The
-frames do not resolve to anything a developer can read: the bundle is emitted as
-a handful of very long lines, so every SDK frame in a trace points into a single
-line at an enormous column offset. Reproduced:
+Every identifier is mangled (`_0x503ddc`, `_0x393e`) and no `.map` files ship, so
+every SDK frame in a stack trace points into a single very long line at an
+enormous column offset. Reproduced:
 
 ```console
-$ node -e 'import("@terminal3/t3n-sdk").then(({T3nClient})=>new T3nClient({}))'
+$ node --input-type=module -e 'const {T3nClient}=await import("@terminal3/t3n-sdk"); new T3nClient({})'
 T3nConfigError: T3nClient: `trustAnchor` is required and must be either a
 TrustAnchor ({ expected_peer_ids, rtmr3_allowlist, rtmr1_allowlist }) ...
     at new T3nClient (file:///.../t3n-sdk/dist/index.esm.js:2:456604)
-    at file:///.../errtest.mjs:6:13
+    at file:///.../[eval1]:1:59
 ```
 
-To be fair to the platform: the *error messages* are unusually good, and the
-error classes are named. The problem is purely the frame — `index.esm.js:2:456604`
-is line 2, column 456604, which tells a developer nothing about which part of the
-SDK failed or why.
+`index.esm.js:2:456604` is line 2, column 456604 — it tells a developer nothing
+about which part of the SDK failed.
 
-**The consequence worth reporting is not just readability.** The obfuscator also
-encodes string literals into a lookup table, so *static inspection returns false
-negatives*. Verifying this against our own draft findings:
+**Why it is not by design, and why it is worth reporting beyond readability.** The
+obfuscator also encodes string literals into a lookup table, so *static inspection
+returns false negatives*. This bit us directly: our own earlier draft reported
+"`T3N_ENV` is documented but ignored by the SDK" on the strength of
 
 ```console
 $ grep -c "T3N_ENV" node_modules/@terminal3/t3n-sdk/dist/cli/index.js
-0                                   # reported as "the string does not exist"
-
-$ T3N_ENV=production t3n did get did:t3n:0123…4567
-error: fetch failed                  # …yet the CLI demonstrably honours it:
-                                     # it switched off testnet and tried production
+0
 ```
 
-The string is absent from the file's text but present in behaviour. This is a
-trap for exactly the reviewer the ADK wants — someone auditing the client to
-understand what it does — and it is what caused a wrong finding in an earlier
-draft of this report (see W1). It also matters for security review: *"the
-dangerous string does not appear in the bundle"* is not a sound conclusion
-against this artifact.
+— yet the CLI demonstrably honours it:
 
-**Impact.** Any error originating inside the SDK is effectively undebuggable, and
-any negative claim derived from reading the bundle is unsound. Note that the
-*type* declarations are clean and extensively documented — the degradation is
-purely at runtime, which makes the gap more surprising, not less.
+```console
+$ t3n did get did:t3n:0123…4567 --env testnet        # succeeds
+$ T3N_ENV=production t3n did get did:t3n:0123…4567   # error: fetch failed
+                                                     # (switched off testnet)
+```
+
+The string is absent from the file's text but present in behaviour. A negative
+conclusion drawn from reading this bundle is unsound — which is exactly the kind
+of conclusion a security reviewer is asked to draw. (That earlier draft finding is
+withdrawn; see W1. It is recorded here because it is evidence *for* this finding.)
+
+To be fair to the platform: the error *messages* are unusually good and the error
+classes are named. The problem is the frame and the unsoundness of static reading,
+not the diagnostics' wording.
 
 **Suggested fix.** Ship source maps (or an unobfuscated `dist/`) and point
-`package.json` at them. Obfuscation buys little here: this is a client for a
-public API, and the protocol surface is already public in the docs.
+`package.json` at them. Obfuscation buys little for a public-API client whose
+protocol surface is already documented.
 
 ---
 
 ## Withdrawn findings
 
-Kept on the record so they are not re-reported, and because a report that only
-lists hits is not evidence of method.
+Kept because a bug report is only useful if it says what it got wrong. Each of
+these was in an earlier draft and was removed after re-checking against a primary
+source.
 
 ### W1. `T3N_ENV` is documented but ignored by the SDK — *withdrawn*
 
-An earlier draft ranked this **Medium**. It rests on a probe that was itself
-unsound, and it is the direct consequence of finding 4.
+**Claim (wrong).** The docs say env vars are honoured; `grep -c T3N_ENV` on the
+published bundle returns 0, so the SDK must ignore it and silently fall back to
+testnet.
 
-The draft's evidence was a grep:
+**What disproved it.** A behavioural test, not a text search. The SDK's own CLI
+reads `T3N_ENV` and switches cluster:
 
 ```console
-$ grep -c "T3N_ENV" node_modules/@terminal3/t3n-sdk/dist/index.js
-0
+$ t3n did get did:t3n:0123…4567 --env testnet      → resolves on testnet
+$ T3N_ENV=production t3n did get did:t3n:0123…4567 → error: fetch failed
 ```
 
-…plus a `loadConfig()` call that stayed on testnet. Both are explained without a
-platform bug:
-
-- The documented sentence lives in `developers/agents/register-agent.md` and
-  `provision-org-agent.md`, under the heading **"Register a Public Agent"**, and
-  reads *"All commands that talk to the network accept `--env …` (or the `T3N_ENV`
-  environment variable)"*. That is about the **CLI**, not `loadConfig()`.
-- The CLI does honour it. Run against a public command with no credentials:
-
-  ```console
-  $ t3n did get did:t3n:0123…4567 --env testnet
-  id: did:t3n:0123…4567
-  agent: (none)
-
-  $ T3N_ENV=production t3n did get did:t3n:0123…4567
-  error: fetch failed
-  ```
-
-  The environment variable changes which cluster the CLI talks to. The grep
-  returned `0` only because the obfuscator stores string literals in an encoded
-  table (finding 4) — a false negative, not evidence of absence.
-
-The residual point is narrower and is folded into finding 4: the *SDK's*
-`loadConfig()` does not read environment variables, but nothing in the docs claims
-it does. The draft generalised a CLI statement to the library and then "confirmed"
-it with a grep that cannot be trusted against this artifact.
+The environment variable is honoured. Our grep was a false negative caused by the
+obfuscation described in finding 4 — the string is not stored as plain text. **The
+probe was wrong, not the platform.** This withdrawal is itself the strongest
+evidence for finding 4.
 
 ### W2. `contract_id` is `number` on register and `string` on invoke — *withdrawn*
 
-An earlier draft ranked this **High**. It does not survive scrutiny.
+**Claim (wrong).** The SDK types disagree, so one of them must be a bug.
 
-The types are real and still disagree:
+**What disproved it.** `register-contract.md` documents the situation explicitly:
 
-```console
-$ grep -nE "^[[:space:]]+contract_id:" index.d.ts
-  1217:    contract_id: string;
-  1378:    contract_id: string;
-  1420:    contract_id: string;
-  1439:    contract_id: string;
-  1480:    contract_id: string;
-  1780:    contract_id: string;
-  4556:    contract_id: string;    # InvokeRequest
-  6487:    contract_id: number;    # ContractRegisterResult — the only numeric one
-```
+> "there is currently no API to fetch a tail's current `contract_id` after
+> re-registering… Keep a record of each `contract_id`."
 
-But the two fields are not the same identifier, and the docs say so plainly:
-
-- `InvokeRequest.contract_id` is the **canonical contract name**. The walkthrough
-  states: *"the `contract_id` starts with `z:<tid>:`"*, and every example passes
-  `TENANT_CONTRACT` — i.e. `z:<tid>:travel-contracts`. Its type is `string`
-  because a name is a string.
-- `ContractRegisterResult.contract_id` is the **numeric ACL identifier**, described
-  in its own doc comment as *"Stable monotonic numeric contract id assigned at
-  registration time"*.
-
-So the type difference reflects two different concepts sharing one field name —
-confusing, but not an inconsistency that misleads a compiler or a reader who has
-read the docs. `invoke()` cannot accept the numeric ID at all, which makes the
-mistake the draft feared (`feeding the numeric id into invoke()`) impossible to
-write without a type error.
-
-The other half of the draft's claim — that the numeric ID is unrecoverable from
-the read APIs — is **documented behaviour**, and the docs warn about it
-explicitly:
-
-> **Re-registering a tail allocates a new `contract_id`.** … there is currently
-> no API to fetch a tail's current `contract_id` after re-registering, so if you
-> created map ACLs scoped to the old `contract_id`, a re-registration can leave
-> them pointing at a stale id. Keep a record of each `contract_id` your tenant
-> registers so you can re-grant map access if needed.
-
-That is a documented limitation with a documented workaround — the same workaround
-this repo implements in `admin.ts` (thread the ID from `register` to
-`create-maps --contract-id`). Calling it a bug would be wrong.
-
-Verified as *not* recoverable, for completeness — `ListedContract` and
-`DetailedContract` (via `listDetailed`) both omit the field, and
-`DescribeContractResult` carries only `{contract, version, descriptor}`. The
-docs' warning is accurate.
+That is a documented limitation, not a defect. Independently: `contract_id: number`
+occurs once in `index.d.ts` (the ACL/register surface, where it is a numeric map
+id) against seven `contract_id: string` declarations, and `invoke-contract.md`
+shows `contract_id` as the `z:<tid>:<name>` *path*, not a number. Reading the two
+as one inconsistent type was our error.
 
 ### W3. The Camoufox browser backend cannot install — *withdrawn*
 
-An earlier draft reported this as a T3N finding at Medium severity. It is not a
-T3N component at all:
+**Claim (wrong).** A dependency could not be installed, so the ADK's tooling is
+broken.
 
-```console
-$ grep -rin "camoufox\|camofox" /tmp/t3ndocs/*.md
-(no output)
-```
-
-The string appears nowhere in the ADK documentation. Camoufox is a local browser
-backend configured in this machine's own tooling, and the failure
-(`data.camoufox.com` is NXDOMAIN) is a problem with that tooling's upstream
-dependency. Reporting it against the ADK was a category error — the draft mistook
-"a thing that went wrong while I was building" for "a thing wrong with the
-product".
-
-The related note about `cloud_provider: camofox` being a broken default is
-withdrawn for the same reason: it describes a local config file, not the ADK.
+**What disproved it.** Camoufox appears nowhere in the T3N documentation, and is
+not part of the ADK. It was a component of our own local test harness, and its
+download host was NXDOMAIN. Reporting a local-environment failure against the
+platform was a category error. Removed entirely.
 
 ---
 

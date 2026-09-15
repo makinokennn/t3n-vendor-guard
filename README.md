@@ -192,17 +192,18 @@ and you get the same pictures from your own machine.
 |---|---|
 | [Contract tests](docs/screenshots/01-contract-tests.png) | 35 tests, host target, no enclave |
 | [Agent typecheck + tests](docs/screenshots/02-agent-typecheck-and-tests.png) | `tsc --noEmit` clean, 42 pass |
-| [Capability set](docs/screenshots/03-capability-set.png) | what the artifact *actually* imports (BUGS.md #3) |
+| [Capability set](docs/screenshots/03-capability-set.png) | what the artifact *actually* imports (BUGS.md #2) |
 | [Artifact hash](docs/screenshots/04-artifact-hash.png) | the committed component, hash-verifiable |
 | [Agent CLI](docs/screenshots/05-agent-cli.png) | 4 commands; only `pay` moves money |
 | [Admin CLI](docs/screenshots/06-admin-cli.png) | the tenant owner's separate binary |
 | [Approver CLI](docs/screenshots/07-approver-cli.png) | minting is not reachable by the agent |
-| [Finding 1 evidence](docs/screenshots/08-bug1-docs-snippet-ts1117.png) | the docs' snippet fails to compile (TS1117) |
+| [Finding 1 evidence](docs/screenshots/08-finding1-docs-snippet-ts1117.png) | the docs' snippet fails to compile (TS1117) |
 | [Finding 2 evidence](docs/screenshots/09-finding2-import-pruning.png) | declared 5 host imports, compiled 4, no warning |
-| [Finding 4 evidence](docs/screenshots/10-finding4-obfuscation.png) | obfuscated bundle, no `.map` |
-| [Withdrawn finding](docs/screenshots/11-withdrawn-cli-honours-env.png) | the probe we retracted, and why |
-| [ADK claim page](docs/screenshots/12-adk-claim-page.png) | the sandbox landing page, reached without a checkpoint |
-| [Claim form + SSO](docs/screenshots/13-claim-form-sso.png) | the Google-gated claim form: the one step that is manual |
+| [Finding 3 evidence](docs/screenshots/10-finding3-version-mismatch.png) | the docs' versions fail the build |
+| [Finding 4 evidence](docs/screenshots/11-finding4-obfuscation.png) | obfuscated bundle, no `.map` |
+| [Withdrawn finding](docs/screenshots/12-withdrawn-cli-honours-env.png) | the probe we retracted, and why |
+| [ADK claim page](docs/screenshots/13-adk-claim-page.png) | the sandbox landing page, reached without a checkpoint |
+| [Claim form + SSO](docs/screenshots/14-claim-form-sso.png) | the Google-gated claim form: the one step that is manual |
 
 The last two are the step that cannot be scripted. The form is behind Google
 Sign-In with a work-email check, so claiming a tenant is a human action by

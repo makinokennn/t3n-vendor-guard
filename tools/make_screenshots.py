@@ -34,7 +34,7 @@ SHOTS = [
     ),
     (
         "03-capability-set",
-        "The capability set actually in the artifact (BUGS.md #3) — 4 host:, 14 wasi:",
+        "The capability set actually in the artifact (BUGS.md #2) — 4 host:, 14 wasi:",
         REPO / "contract",
         "echo '$ wasm-tools component wit target/wasm32-wasip2/release/vendor_guard.wasm | grep import' && "
         "wasm-tools component wit target/wasm32-wasip2/release/vendor_guard.wasm | grep import && "
@@ -76,7 +76,7 @@ SHOTS = [
         20,
     ),
     (
-        "08-bug1-docs-snippet-ts1117",
+        "08-finding1-docs-snippet-ts1117",
         "BUGS.md #1 — the docs' own invoke-contract.md snippet does not compile",
         REPO / "agent",
         "mkdir -p /tmp/dupekey && cat > /tmp/dupekey/repro.ts <<'EOF'\n"
@@ -104,13 +104,20 @@ SHOTS = [
     ),
     (
         "09-finding2-import-pruning",
-        "BUGS.md #2(a) — declared 5 host imports, compiled 4, with no warning",
+        "BUGS.md #2 — declared 5 host imports, compiled 4, with no warning",
         REPO,
         "bash tools/repro-import-pruning.sh",
         24,
     ),
     (
-        "10-finding4-obfuscation",
+        "10-finding3-version-mismatch",
+        "BUGS.md #3 — following write-contract.md's versions breaks the build",
+        REPO,
+        "bash tools/repro-version-mismatch.sh",
+        34,
+    ),
+    (
+        "11-finding4-obfuscation",
         "BUGS.md #4 — obfuscated with no source maps, so static review gives false negatives",
         REPO / "agent" / "node_modules" / "@terminal3" / "t3n-sdk" / "dist",
         "echo '$ head -c 60 index.js'\n"
@@ -121,11 +128,11 @@ SHOTS = [
         "echo\n"
         "echo '$ grep -c T3N_ENV cli/index.js   # looks like absence of the feature...'\n"
         "grep -c T3N_ENV cli/index.js\n"
-        "echo '   ...but see screenshot 11: the CLI does honour T3N_ENV.'",
+        "echo '   ...but see screenshot 12: the CLI does honour T3N_ENV.'",
         16,
     ),
     (
-        "11-withdrawn-cli-honours-env",
+        "12-withdrawn-cli-honours-env",
         "Withdrawn W1 — our probe was wrong: the CLI does honour T3N_ENV",
         REPO / "agent",
         "bash ../tools/repro-cli-env.sh",

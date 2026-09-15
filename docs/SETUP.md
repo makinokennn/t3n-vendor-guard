@@ -56,7 +56,7 @@ wasm-tools component wit target/wasm32-wasip2/release/vendor_guard.wasm | grep i
 The second command is not decoration. It prints the capability set that is
 *actually* in the artifact, which is not identical to what `wit/world.wit`
 declares and not identical to the four `host:` interfaces you are expecting —
-see [`../BUGS.md`](../BUGS.md) finding 3. Read it before you trust any claim in
+see [`../BUGS.md`](../BUGS.md) finding 2. Read it before you trust any claim in
 this repo about what the contract can reach.
 
 ---

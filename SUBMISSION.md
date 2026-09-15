@@ -116,7 +116,9 @@ wasm-tools component wit target/wasm32-wasip2/release/vendor_guard.wasm | grep i
 Four `host:` interfaces — `tenant-context`, `logging`, `kv-store`,
 `http-with-placeholders` — plus 14 `wasi:*` interfaces that the Rust toolchain
 injects. That second part is not what "your import list is your capability set"
-leads you to expect, and it is written up as finding 3 in `BUGS.md`.
+leads you to expect, and it is written up as finding 2 in `BUGS.md` (though the
+`wasi:*` half is explicitly *not* counted as a defect there: the reference
+contract emits the same 14).
 
 ### Docs
 
@@ -135,8 +137,8 @@ Full write-up with reproductions in `BUGS.md`. Summary:
 | # | Finding | Severity |
 |---|---|---|
 | 1 | The docs' own `invoke-contract.md` snippet does not compile: `trustAnchor` is passed twice in one object literal, which TypeScript rejects with `TS1117` — the last step of the walkthrough is uncopyable | **High** |
-| 2 | The compiled capability set differs from `world.wit` in both directions: an unused declared import is silently pruned (proven with a controlled build), and `std` injects 14 `wasi:*` interfaces the author never wrote | Medium |
-| 3 | Docs pin WIT host packages `2.2.0`/`1.2.0`; the reference repo the same walkthrough tells you to clone deliberately ships `2.1.0`/`1.0.0` — and says "Held at @2.1.0 deliberately" in a comment | Medium |
+| 2 | A declared host import is silently pruned from the compiled artifact: declare five, get four, with no warning anywhere — so the capability set the docs call authoritative is not what you declared | **High** |
+| 3 | `write-contract.md` tells you to vendor `host-interfaces-2.2.0`/`host-tenant-1.2.0`; following it literally fails to build (`package 'host:tenant@1.2.0' not found`). The page also contradicts the docs' own capability page and the reference repo, both of which use `2.1.0`/`1.0.0` — and the changelog claims this exact fix already landed | Medium |
 | 4 | The SDK ships fully obfuscated with no source maps, so every stack frame through it points into a single multi-hundred-KB line (we saw `index.esm.js:2:456604`) — unreadable — and, as we found the hard way, static review of it produces false negatives | Medium |
 
 Three findings we **withdrew** after re-checking, recorded in `BUGS.md` so they are
@@ -186,6 +188,7 @@ running what was reviewed before they change a line.
 > memory, and bank details are reduced to last-4.
 >
 > 35 Rust tests + 42 TS tests, policy engine pure and host-free. 4 platform bugs
-> written up with repros — plus 3 we withdrew after re-checking.
+> written up with repros — plus 3 we withdrew after re-checking. Every claim
+> re-verified against the live docs and a clean rebuild.
 >
 > Repo: `<REPO_URL>`
