@@ -1,0 +1,245 @@
+<!doctype html>
+<html><head><meta charset='utf-8'><title>vendor-guard submission</title><style>
+body { font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+       max-width: 46rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.55;
+       color: #1a1a1a; }
+h1 { font-size: 1.7rem; border-bottom: 1px solid #ddd; padding-bottom: .3rem; }
+h2 { font-size: 1.3rem; margin-top: 1.8rem; }
+h3 { font-size: 1.08rem; margin-top: 1.4rem; }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .94rem; }
+th, td { border: 1px solid #bbb; padding: .4rem .55rem; text-align: left;
+         vertical-align: top; }
+th { background: #f2f2f2; }
+code { background: #f4f4f4; padding: .1rem .3rem; border-radius: 3px;
+       font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: .89em; }
+pre { background: #f6f6f6; border: 1px solid #ddd; border-radius: 4px;
+      padding: .7rem .8rem; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+blockquote { border-left: 3px solid #ccc; margin-left: 0; padding-left: .9rem;
+             color: #333; }
+hr { border: none; border-top: 1px solid #ddd; margin: 1.6rem 0; }
+</style></head>
+<body>
+<h1>Submission text: paste into the public Google Doc</h1>
+<p>This file is the submission <em>content</em>. Copy it into a Google Doc, set sharing to
+<strong>Anyone with the link → Viewer</strong>, and put that link in the Superteam form.</p>
+<p>Placeholders to fill before submitting: <code>&lt;DOC_URL&gt;</code>.</p>
+<hr />
+<h2>vendor-guard: policy-gated vendor payouts on Terminal 3</h2>
+<p><strong>Repo:</strong> https://github.com/makinokennn/t3n-vendor-guard (public, MIT)
+<strong>Google Doc:</strong> <code>&lt;DOC_URL&gt;</code> (fill in once the Doc is created)
+<strong>DID:</strong> <code>t3n:027196549993299f1ba80f717605e98e2f8595e2</code>
+<strong>Deadline met:</strong> 2026-09-16</p>
+<hr />
+<h3>What it is</h3>
+<p>An enterprise agent that pays vendors, where the money-moving decisions are made
+by a contract inside the TEE rather than by the model.</p>
+<p>The agent can <em>propose</em> a payout. It cannot <em>authorise</em> one. That sentence is the
+whole design, and everything below exists to make it true rather than aspirational.</p>
+<h3>The problem</h3>
+<p>Give an LLM agent a payment API and you have given a prompt injection a payment
+API. The usual mitigation (a careful system prompt, a confirmation step, a
+"the agent should never…" in the instructions) is not a security boundary. It is
+a suggestion to a stochastic process.</p>
+<p>So the payout authority lives in a WASM contract running inside Terminal 3's
+enclave, and the agent holds no key that can reach it:</p>
+<pre><code>model  ──proposes──▶  agent (TypeScript)
+                        │  policy → approval → payout → audit
+                        ▼
+                  contract (Rust, in the TEE)
+                        │  refuses anything the policy disallows
+                        ▼
+                  vendor payout (one outbound call)
+</code></pre>
+<h3>Why this is useful and easy to maintain</h3>
+<p><strong>Useful.</strong> Vendor payouts are a real, boring, recurring enterprise task with
+real consequences for getting them wrong. The agent removes the copy-paste work;
+the enclave removes the "the model wired the money to the wrong account" class of
+incident.</p>
+<p><strong>Maintainable</strong>, which the brief calls out specifically, via four deliberate
+choices:</p>
+<ol>
+<li><strong><code>policy.rs</code> is pure.</strong> No host interface, no I/O, no clock, no network. It is
+   a function from arguments to a decision. That is why the policy engine is
+   unit-tested on the <em>host</em> target: 35 tests, no enclave, no tenant, no network.
+   A maintainer can change a spending rule and know within seconds whether it
+   broke something.</li>
+<li><strong>The agent depends on a narrow interface.</strong> It talks to a <code>ContractInvoker</code>,
+   not to the SDK, so the gate is testable without a network and the transport can
+   be swapped without touching business logic.</li>
+<li><strong>Three binaries, split by privilege.</strong> <code>vendor-guard</code> (the agent),
+   <code>vendor-guard-mint</code> (mints approvals), <code>vendor-guard-admin</code> (owns the tenant).
+   The split is not stylistic: an agent that can mint its own approvals, or
+   register its own vendors, has no gate at all. Registering a vendor is what puts
+   a payout URL in front of the money, so it is not exposed over MCP and not
+   reachable from the agent.</li>
+<li><strong>No build step for the agent.</strong> Node type-strips the TypeScript directly.
+   There is no bundler, no transpiler config, and no <code>dist/</code> to drift from source.</li>
+</ol>
+<h3>Design decisions worth reading</h3>
+<p><strong>Approver identity never enters WASM memory.</strong> The payout body carries
+<code>{{profile.&lt;field&gt;}}</code> markers that the <em>host</em> resolves from the paying employee's
+profile at dispatch time. The contract composes a request without ever holding the
+human's details.</p>
+<p><strong>Bank details are reduced to <code>bank_last4</code>.</strong> The full account number is not in
+the enclave's state and not in the contract's memory. A compromise of the contract
+does not yield an account number, because it was never there.</p>
+<p><strong>The caller cannot backdate a payout.</strong> Day bucketing reads enclave cluster time
+via <code>tenant_context</code>, not a caller-supplied timestamp. A "daily limit" that the
+caller can reset by lying about the date is not a limit.</p>
+<p><strong>Approval tokens are bound to the exact intent.</strong> HMAC over
+vendor + amount + currency + memo. Changing any of them invalidates the token, so
+an approval cannot be redirected to a different payee or inflated after the fact.</p>
+<p><strong>Policy can only tighten.</strong> Vendor-level overrides may restrict a vendor below
+the global policy but never raise it above.</p>
+<h3>Verification</h3>
+<p>Screenshots in <code>docs/screenshots/</code> are generated from real command output by
+<code>tools/make_screenshots.py</code>, so a reviewer can reproduce them:</p>
+<pre><code>contract:  cargo test --target x86_64-unknown-linux-gnu   35 passed
+agent:     npx tsc --noEmit                               exit 0
+agent:     node --test &quot;test/**/*.test.ts&quot;                42 pass / 0 fail
+clippy:    cargo clippy --target wasm32-wasip2 --release   clean
+component: vendor_guard.wasm  217 KB  sha256 e1876458…   (committed to the repo)
+</code></pre>
+<p>The capability set is checkable in one command, and we document what it actually
+shows rather than what we wish it showed:</p>
+<pre><code class="language-bash">wasm-tools component wit target/wasm32-wasip2/release/vendor_guard.wasm | grep import
+</code></pre>
+<p>Four <code>host:</code> interfaces (<code>tenant-context</code>, <code>logging</code>, <code>kv-store</code>,
+<code>http-with-placeholders</code>) plus 14 <code>wasi:*</code> interfaces that the Rust toolchain
+injects. That second part is not what "your import list is your capability set"
+leads you to expect, and it is written up as finding 2 in <code>BUGS.md</code> (though the
+<code>wasi:*</code> half is explicitly <em>not</em> counted as a defect there: the reference
+contract emits the same 14).</p>
+<h3>Docs</h3>
+<ul>
+<li><code>README.md</code>: what it is, how to verify it, the layout</li>
+<li><code>docs/ARCHITECTURE.md</code>: the trust boundaries and the data flow</li>
+<li><code>docs/THREAT-MODEL.md</code>: what this does <em>not</em> protect against</li>
+<li><code>docs/SETUP.md</code>: zero to a payout, including the two footguns that cost us time</li>
+<li><code>docs/HANDOVER.md</code>: running it without us: day-1 checklist, what breaks first, cost</li>
+<li><code>BUGS.md</code>: 5 confirmed platform findings with reproductions, plus 3 we
+  withdrew after re-checking</li>
+</ul>
+<h3>Bugs faced</h3>
+<p>Full write-up with reproductions in <code>BUGS.md</code>. Summary:</p>
+<table border="1" cellpadding="6" cellspacing="0">
+<thead>
+<tr>
+<th>#</th>
+<th>Finding</th>
+<th>Severity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>The docs' own <code>invoke-contract.md</code> snippet does not compile: <code>trustAnchor</code> is passed twice in one object literal, which TypeScript rejects with <code>TS1117</code>. The last step of the walkthrough is uncopyable</td>
+<td><strong>High</strong></td>
+</tr>
+<tr>
+<td>2</td>
+<td>A declared host import is silently pruned from the compiled artifact: declare five, get four, with no warning anywhere, so the capability set the docs call authoritative is not what you declared. Practical impact is low (the pruned direction is the safe one, and a <em>typo'd</em> name fails the build loudly rather than silently); the cost is auditability and diagnosis</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>write-contract.md</code> tells you to vendor <code>host-interfaces-2.2.0</code>/<code>host-tenant-1.2.0</code>; following it literally fails to build (<code>package 'host:tenant@1.2.0' not found</code>). The page also contradicts the docs' own capability page and the reference repo, both of which use <code>2.1.0</code>/<code>1.0.0</code>, and the changelog claims this exact fix already landed</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>4</td>
+<td>The SDK ships fully obfuscated with no source maps, so every stack frame through it points into a single multi-hundred-KB line (we saw <code>index.esm.js:2:456604</code>), unreadable, and, as we found the hard way, static review of it produces false negatives</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>intro/about-t3.md</code>, the first page a reader hits, sends two of its four product cards to a <code>/documentation/products/*</code> section that does not exist in the docs at all (absent from <code>llms.txt</code>), and has a typo: <code>withoutc</code> for <code>without</code></td>
+<td>Low</td>
+</tr>
+</tbody>
+</table>
+<p>Three findings we <strong>withdrew</strong> after re-checking, recorded in <code>BUGS.md</code> so they are
+not re-reported: the <code>contract_id</code> <code>number</code>/<code>string</code> split (the docs are explicit
+that the numeric ACL id is not recoverable after re-registration, and warn you to
+keep a record, a documented limitation, not a defect); <code>T3N_ENV</code> being "ignored"
+(we had grepped the obfuscated bundle for the literal string, got 0 hits, and
+concluded the feature was missing. The CLI in fact honours it, and a behavioural
+test proved our probe wrong); and the Camoufox browser failure (Camoufox appears
+nowhere in the T3N docs, a problem in our own local tooling, and reporting it
+against the ADK was a category error).</p>
+<p>Also hit, though not counted above: the Vercel Security Checkpoint on the
+claim/ADK pages blocks headless browsers, which is why the claim step is manual
+rather than scripted.</p>
+<p>Two things that look like bugs and are not (documented so they are not
+re-reported): the SDK's <code>maps.create</code> <em>does</em> warn when <code>readers</code> is omitted and
+the KV default really is deny; and <code>sandbox</code> being an alias for <code>testnet</code> is
+intended.</p>
+<h3>Would we keep running it, or hand it over?</h3>
+<p><strong>Hand it over, with a documented process, and we would stay available.</strong></p>
+<h3>What is verified, and what is not</h3>
+<p>The one thing we could not do is the end-to-end run. Step 7 needs a claimed
+tenant, which needs a Google account and a work email. We reached the claim form
+(screenshots 14 and 15) but did not complete it, so <strong>no contract here has been
+registered or invoked on testnet by us.</strong></p>
+<p>So, plainly:</p>
+<table border="1" cellpadding="6" cellspacing="0">
+<thead>
+<tr>
+<th>Claim</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>35 Rust tests, 42 TS tests, clean <code>tsc --noEmit</code></td>
+<td><strong>Verified</strong>, and re-runnable with no tenant</td>
+</tr>
+<tr>
+<td>The committed WASM is a real <code>wasm32-wasip2</code> build</td>
+<td><strong>Verified</strong>, hash in screenshot 4</td>
+</tr>
+<tr>
+<td>The policy engine behaves as described</td>
+<td><strong>Verified</strong> by the test suite; it is pure and host-free</td>
+</tr>
+<tr>
+<td>The CLI output shown in the README</td>
+<td><strong>Illustrative.</strong> Written to show the shape of the interface, not captured from a live tenant</td>
+</tr>
+<tr>
+<td>Register and invoke a contract on testnet</td>
+<td><strong>Not performed.</strong> Blocked on the claim step</td>
+</tr>
+<tr>
+<td>Outbound HTTP reaching a real vendor API</td>
+<td><strong>Not performed</strong></td>
+</tr>
+</tbody>
+</table>
+<p>We would rather say this than let a reviewer assume the payout path was exercised.
+Everything above the line is reproducible from the repo in under a minute.</p>
+<p>We built it so that the handover is a checklist rather than an archaeology
+project, because a submission that only works in its author's head is not
+maintainable. <code>docs/HANDOVER.md</code> contains the day-1 checklist, an honest
+"what breaks first" list ordered by likelihood, the cost model (one outbound call
+per payout), the safe way to change policy, and the three things we would add
+before real money moves.</p>
+<p>The two things that make a handover viable are both already true: the policy
+engine is pure and tested without any infrastructure, and the component is
+committed as a hash-verifiable artifact, so the inheritor can confirm they are
+running what was reviewed before they change a line.</p>
+<hr />
+<h3>Bonus: post for X</h3>
+<blockquote>
+<p>Built a vendor-payout agent on @terminal3io where the money-moving logic lives
+in a WASM contract inside the TEE, not in the model.</p>
+<p>The agent can propose a payout. It cannot authorise one. Approval tokens are
+HMAC-bound to the exact vendor/amount/memo, approver identity never enters WASM
+memory, and bank details are reduced to last-4.</p>
+<p>35 Rust tests + 42 TS tests, policy engine pure and host-free. 5 platform bugs
+written up with repros, plus 3 we withdrew after re-checking. Every claim
+re-verified against the live docs and a clean rebuild.</p>
+<p>Repo: https://github.com/makinokennn/t3n-vendor-guard</p>
+</blockquote>
+</body></html>

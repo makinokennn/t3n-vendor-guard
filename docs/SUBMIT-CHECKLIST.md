@@ -16,6 +16,20 @@ take. Tick them off in order.
 The Google Doc must be set to **Anyone with the link -> Viewer**, and the same
 link goes in the Superteam form.
 
+### Making the Doc
+
+Pasting `SUBMISSION.md` straight into Google Docs gives literal pipes and
+backticks, because Docs does not read markdown. Paste the rendered version
+instead:
+
+```bash
+python3 tools/make_submission_html.py     # writes docs/SUBMISSION.html
+```
+
+Open `docs/SUBMISSION.html` in a browser, select all, copy, and paste into the
+Doc. The tables, headings and code blocks come across as real Docs elements.
+Then fill in `<DOC_URL>` in `SUBMISSION.md` and push.
+
 ## Eligibility questions
 
 The listing asks three. Answers are prepared; copy them across.
