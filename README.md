@@ -3,7 +3,7 @@
 **A spending-policy enclave for autonomous payment agents, built on Terminal 3.**
 
 An LLM agent that can move money is only as safe as the policy in front of it. `vendor-guard`
-puts that policy *inside a TEE* — a Rust/WASM contract running on Terminal 3 — so that the
+puts that policy *inside a TEE* (a Rust/WASM contract running on Terminal 3), so that the
 limits, the vendor registry, the daily spend ledger and the vendor's API key all live in a
 place the agent can call but cannot read, edit or route around.
 
@@ -31,7 +31,7 @@ payment.
 
 ---
 
-## Why this is not just "an if-statement in the agent"
+## Why the policy is not an if-statement in the agent
 
 A policy the agent enforces is a policy the agent can be talked out of. Everything below is a
 property of *where the code runs*, not of how carefully the prompt is written.
@@ -80,12 +80,12 @@ payload = v1\n<vendor>\n<amount>\n<currency>\n<memoHash>\n<approver>\n<nonce>\n<
 Properties, each covered by a test in `agent/test/approval.test.ts`:
 
 - **Bound to one intent.** Change the amount, vendor, currency or memo and the token stops
-  verifying. A token for $100 cannot become a token for $100,000 — not by editing it, and not
+  verifying. A token for $100 cannot become a token for $100,000. Not by editing it, and not
   by pointing it at a different vendor.
 - **Single use.** The nonce is spent in the audit log; replaying the token is refused *and the
   bank is never called*.
 - **Time-boxed.** Expiry is enforced, and a token whose lifetime exceeds
-  `AGENT_MAX_APPROVAL_TTL_SECS` (default 900s) is rejected even if still valid — so a
+  `AGENT_MAX_APPROVAL_TTL_SECS` (default 900s) is rejected even if still valid, so a
   long-lived "standing approval" cannot be smuggled in.
 - **Fail-closed.** Malformed, truncated, wrong-version and wrong-secret tokens all deny with a
   specific reason. There is no code path where a parse failure becomes an allow.
@@ -94,14 +94,14 @@ Properties, each covered by a test in `agent/test/approval.test.ts`:
 > agent holds the HMAC key and a compromised agent host could in principle mint. This is why
 > `approver.ts` is a separate binary and why the split is documented as the seam to upgrade:
 > swap HMAC for Ed25519 and the agent holds only a public key. See
-> [`docs/THREAT-MODEL.md`](docs/THREAT-MODEL.md) for the full analysis — including the parts
+> [`docs/THREAT-MODEL.md`](docs/THREAT-MODEL.md) for the full analysis, including the parts
 > this design does *not* protect against.
 
 ---
 
 ## What runs inside the enclave
 
-`contract/` — Rust, compiled to `wasm32-wasip2`, published to T3N as `z:<tid>:vendor-guard`.
+`contract/`: Rust, compiled to `wasm32-wasip2`, published to T3N as `z:<tid>:vendor-guard`.
 
 | Export | Purpose |
 | --- | --- |
@@ -116,7 +116,7 @@ check and payout`.
 
 ### The policy engine
 
-Pure, dependency-free, and unit-testable on the host target — `policy.rs` imports no T3N host
+Pure, dependency-free, and unit-testable on the host target: `policy.rs` imports no T3N host
 interface, which is what lets the entire decision surface be tested without a cluster.
 
 ```rust
@@ -129,7 +129,7 @@ pub struct Policy {
 }
 ```
 
-Rules produce one of three decisions — `allow`, `review`, `deny` — and **every** failing rule is
+Rules produce one of three decisions (`allow`, `review`, `deny`), and **every** failing rule is
 reported, not just the first, so an operator sees the whole picture in one round trip. A single
 `deny` always outranks any `review` signal. Reason codes are stable strings
 (`vendor_unknown`, `daily_cap_exceeded`, `memo_required`, `currency_mismatch`, …) so the agent
@@ -185,7 +185,7 @@ Then publish and run for real: [`docs/SETUP.md`](docs/SETUP.md).
 ### Evidence
 
 Every image in [`docs/screenshots/`](docs/screenshots) is a real command's output,
-rendered by [`tools/make_screenshots.py`](tools/make_screenshots.py) — re-run it
+rendered by [`tools/make_screenshots.py`](tools/make_screenshots.py), re-run it
 and you get the same pictures from your own machine.
 
 | | |
@@ -207,11 +207,11 @@ and you get the same pictures from your own machine.
 
 The last two are the step that cannot be scripted. The form is behind Google
 Sign-In with a work-email check, so claiming a tenant is a human action by
-design — see `docs/SETUP.md` step 3.
+design. See `docs/SETUP.md` step 3.
 
 ### Check the capability set yourself
 
-A contract's capabilities *are* its import list — there is no separate manifest. The
+A contract's capabilities *are* its import list. There is no separate manifest. The
 list in `wit/world.wit` is what we ask for; the compiled component is what we actually
 get, because `wit-bindgen` prunes an import no code path references:
 
@@ -223,12 +223,12 @@ Four `host:` interfaces, all deliberate: `tenant-context` (map naming), `logging
 `kv-store` (registry + secrets), `http-with-placeholders` (the payout).
 
 The component also imports 14 `wasi:*` interfaces (`cli`, `io`, `clocks`). Those are
-**not** ours — they come from the Rust `std` prelude, and the reference contract
+**not** ours: they come from the Rust `std` prelude, and the reference contract
 `z-tenant-flight` (same `Cargo.toml`) emits the identical set. If you want to drop
 them, the crate has to become `#![no_std]` with its own panic handler; the ADK
 walkthrough does not ask for that. We are flagging it rather than hiding it, because
 "we import only what we use" is a claim a reviewer should be able to falsify in one
-command — and strictly speaking, for the `wasi:*` block, it is false.
+command, and strictly speaking, for the `wasi:*` block, it is false.
 
 ---
 
@@ -240,7 +240,7 @@ command — and strictly speaking, for the `wasi:*` block, it is false.
 export AGENT_CONTRACT_TAIL=vendor-guard
 export AGENT_TENANT_DID=did:t3n:<your-tenant-hex>
 export AGENT_APPROVAL_SECRET=<32+ random bytes>
-export T3N_AGENT_KEY=<the AGENT's own key — not your tenant key>
+export T3N_AGENT_KEY=<the AGENT's own key, not your tenant key>
 
 vendor-guard mcp
 ```
@@ -276,7 +276,7 @@ vendor-guard pay   --vendor acme-cloud --amount 12500 --currency USD \
 vendor-guard audit --limit 20
 ```
 
-A refused payout exits non-zero and prints the structured reason — usable directly in CI:
+A refused payout exits non-zero and prints the structured reason, usable directly in CI:
 
 ```console
 $ vendor-guard pay --vendor acme-cloud --amount 90000000 --currency USD \
@@ -315,17 +315,17 @@ vendor-guard-admin add-vendor --id acme-cloud --name "Acme Cloud" \
 contract/                  Rust → WASM, runs inside the TEE
   wit/world.wit            the ABI: 3 exports, 4 host imports
   wit/deps/                pinned host interface packages (2.1.0 / 1.0.0)
-  src/policy.rs            pure policy engine — no host interface, fully unit-testable
+  src/policy.rs            pure policy engine: no host interface, fully unit-testable
   src/api.rs               the 3 entry points; egress via http-with-placeholders
   src/store.rs             KV access: registry, daily ledger, secrets
   src/dates.rs             UTC day bucketing, dependency-free
 
 agent/                     TypeScript, runs next to the model
-  src/mcp.ts               MCP server (4 tools), hand-rolled JSON-RPC — auditable in one file
+  src/mcp.ts               MCP server (4 tools), hand-rolled JSON-RPC, auditable in one file
   src/gate.ts              the payment gate: policy → approval → payout → audit
   src/approval.ts          token mint/verify (HMAC-SHA256, constant-time compare)
   src/invoker.ts           the only file that touches the T3N SDK
-  src/validate.ts          response validation — a malformed response is never "paid"
+  src/validate.ts          response validation: a malformed response is never "paid"
   src/audit.ts             append-only log + nonce store
   src/cli.ts               agent CLI (no mint, no admin)
   src/approver.ts          human-only: mint approval tokens
@@ -342,7 +342,7 @@ BUGS.md                    findings from building against the T3N ADK
 **The MCP server is hand-rolled, not a framework.** The MCP surface *is* the agent's authority.
 Reading it in full, in one file, is how a reviewer confirms that `pay_vendor` demands an approval
 token and that no tool widens a limit. A framework would hide exactly the part worth auditing.
-It also keeps the agent's dependency surface at exactly one package — which matters for
+It also keeps the agent's dependency surface at exactly one package, which matters for
 something that runs unattended next to money.
 
 **`invoke()` instead of a `T3nClient` session.** A payment agent runs on a schedule, in a
@@ -355,12 +355,12 @@ coerced. Silently interpreting a decimal is exactly the bug that turns a $12.50 
 $1,250 transfer.
 
 **Refusals are results, not errors.** A policy denial comes back as a normal tool result with
-reason codes. The model should be able to read *why* and explain itself to the operator — and an
+reason codes. The model should be able to read *why* and explain itself to the operator, and an
 error-shaped refusal invites the model to retry, which is the wrong instinct.
 
 **Response validation is its own module.** The contract is our own code, but its response crosses
-a network. A payout that claims `status: "paid"` without a reference is rejected outright —
-`cannot reconcile this payment` — because an unreconcilable "success" is worse than a failure.
+a network. A payout that claims `status: "paid"` without a reference is rejected outright,
+`cannot reconcile this payment`, because an unreconcilable "success" is worse than a failure.
 
 ---
 
@@ -394,8 +394,8 @@ The tests are the specification. A representative slice:
 Full analysis in [`docs/THREAT-MODEL.md`](docs/THREAT-MODEL.md), including the attacks this
 design does **not** stop: a fully compromised agent host, a malicious tenant owner (who can
 always rewrite the registry), and upstream vendor compromise. Written to be read by someone
-deciding whether to trust it with real money — not to be flattering.
+deciding whether to trust it with real money, not to be flattering.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).

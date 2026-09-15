@@ -1,7 +1,7 @@
 # Threat model
 
 Written to be read by someone deciding whether to put real money behind this. It lists what is
-defended, how, and — more usefully — what is **not**.
+defended, how, and (more usefully) what is **not**.
 
 ## Assets
 
@@ -15,23 +15,23 @@ defended, how, and — more usefully — what is **not**.
 
 ## Adversaries
 
-**A1 — Prompt injection.** Malicious text reaches the model: an invoice PDF, a vendor email, a
+**A1: Prompt injection.** Malicious text reaches the model: an invoice PDF, a vendor email, a
 web page. The model is persuaded to pay an attacker, inflate an amount, or split a payment.
 
-**A2 — A compromised agent host.** An attacker has code execution on the machine running the
+**A2: A compromised agent host.** An attacker has code execution on the machine running the
 agent, but not on the finance machine and not in the enclave.
 
-**A3 — A malicious tenant owner.** Someone with legitimate control-plane access — i.e. the
+**A3: A malicious tenant owner.** Someone with legitimate control-plane access, i.e. the
 customer themselves, or someone who has stolen their credentials.
 
-**A4 — A hostile vendor / upstream.** The payee's API returns crafted responses, hangs, or lies
+**A4: A hostile vendor / upstream.** The payee's API returns crafted responses, hangs, or lies
 about success.
 
-**A5 — A hostile network.** The link between agent and cluster is observed or tampered with.
+**A5: A hostile network.** The link between agent and cluster is observed or tampered with.
 
 ## Defences
 
-### A1 — Prompt injection
+### A1: Prompt injection
 
 This is the threat the whole design exists for.
 
@@ -53,13 +53,13 @@ This is the threat the whole design exists for.
 The load-bearing point: **none of these depend on the model behaving.** They are properties of
 what the model can reach.
 
-### A2 — Compromised agent host
+### A2: Compromised agent host
 
 | Attack | Outcome |
 | --- | --- |
 | Mint an approval token | **Possible.** The host holds the HMAC secret. |
 | Suppress an audit entry | **Possible.** The log is a local file. |
-| Alter the audit log | **Possible** — nothing signs it. |
+| Alter the audit log | **Possible**: nothing signs it. |
 | Read the vendor API key | **No.** It lives in the enclave. |
 | Exceed a policy limit | **No.** The enclave re-decides at payout time. |
 | Redirect a payout URL | **No.** It comes from enclave state. |
@@ -76,15 +76,15 @@ what the model can reach.
 A signing key on the agent host is a real limitation, and it is documented here rather than
 papered over.
 
-### A3 — Malicious tenant owner
+### A3: Malicious tenant owner
 
 Not defended, and cannot be by this design. The owner can rewrite the registry, seed a different
 API key, or change the contract. This is by construction: it is *their* money and *their*
-contract. What the design does provide is **evidence** — `ignored_overrides` surfaces any attempt
+contract. What the design does provide is **evidence**: `ignored_overrides` surfaces any attempt
 to loosen a limit, and the enclave logs every decision. That makes an insider's actions visible
 after the fact, not impossible.
 
-### A4 — Hostile vendor
+### A4: Hostile vendor
 
 | Attack | Outcome |
 | --- | --- |
@@ -94,9 +94,9 @@ after the fact, not impossible.
 | Return an unknown status | `validatePayoutResult` rejects unknown enums rather than defaulting to success |
 | Retry-for-double-payment | `Idempotency-Key` is a deterministic function of (vendor, amount, currency, approval ref, UTC day) |
 
-The ledger ordering — move **after** a 2xx — is what makes a hang cheap and a lie detectable.
+The ledger ordering (move **after** a 2xx) is what makes a hang cheap and a lie detectable.
 
-### A5 — Hostile network
+### A5: Hostile network
 
 The T3N node channel is the transport; TLS and enclave attestation are T3N's guarantees, not
 this project's. What this project adds is not trusting the *content*: every response crossing
@@ -111,7 +111,7 @@ treated as a contract error, never as a success.
    entry carrying the previous entry's hash) would close it; not implemented.
 3. **`check-payout` is advisory.** An agent can call `check-payout`, get `allow`, and have
    `payout` still refuse because another payout consumed the budget. Correct behaviour, but
-   callers must handle it — the agent records it as a state race.
+   callers must handle it; the agent records it as a state race.
 4. **No rate limiting on `check-payout`.** It is read-only and cheap, but it is unbounded. A
    compromised agent could use it as an oracle. Low impact; the enclave sees it in logs.
 5. **Single currency per vendor.** The registry pins one currency per vendor; a vendor billing in

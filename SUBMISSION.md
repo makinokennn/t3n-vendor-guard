@@ -1,4 +1,4 @@
-# Submission text — paste into the public Google Doc
+# Submission text: paste into the public Google Doc
 
 This file is the submission *content*. Copy it into a Google Doc, set sharing to
 **Anyone with the link → Viewer**, and put that link in the Superteam form.
@@ -7,7 +7,7 @@ Placeholders to fill before submitting: `<DID>`, `<REPO_URL>`, `<DOC_URL>`.
 
 ---
 
-## vendor-guard — policy-gated vendor payouts on Terminal 3
+## vendor-guard: policy-gated vendor payouts on Terminal 3
 
 **Repo:** `<REPO_URL>` (public, MIT)
 **Google Doc:** `<DOC_URL>`
@@ -27,8 +27,8 @@ whole design, and everything below exists to make it true rather than aspiration
 ### The problem
 
 Give an LLM agent a payment API and you have given a prompt injection a payment
-API. The usual mitigation — a careful system prompt, a confirmation step, a
-"the agent should never…" in the instructions — is not a security boundary. It is
+API. The usual mitigation (a careful system prompt, a confirmation step, a
+"the agent should never…" in the instructions) is not a security boundary. It is
 a suggestion to a stochastic process.
 
 So the payout authority lives in a WASM contract running inside Terminal 3's
@@ -56,7 +56,7 @@ choices:
 
 1. **`policy.rs` is pure.** No host interface, no I/O, no clock, no network. It is
    a function from arguments to a decision. That is why the policy engine is
-   unit-tested on the *host* target — 35 tests, no enclave, no tenant, no network.
+   unit-tested on the *host* target: 35 tests, no enclave, no tenant, no network.
    A maintainer can change a spending rule and know within seconds whether it
    broke something.
 2. **The agent depends on a narrow interface.** It talks to a `ContractInvoker`,
@@ -113,8 +113,8 @@ shows rather than what we wish it showed:
 wasm-tools component wit target/wasm32-wasip2/release/vendor_guard.wasm | grep import
 ```
 
-Four `host:` interfaces — `tenant-context`, `logging`, `kv-store`,
-`http-with-placeholders` — plus 14 `wasi:*` interfaces that the Rust toolchain
+Four `host:` interfaces (`tenant-context`, `logging`, `kv-store`,
+`http-with-placeholders`) plus 14 `wasi:*` interfaces that the Rust toolchain
 injects. That second part is not what "your import list is your capability set"
 leads you to expect, and it is written up as finding 2 in `BUGS.md` (though the
 `wasi:*` half is explicitly *not* counted as a defect there: the reference
@@ -122,12 +122,12 @@ contract emits the same 14).
 
 ### Docs
 
-- `README.md` — what it is, how to verify it, the layout
-- `docs/ARCHITECTURE.md` — the trust boundaries and the data flow
-- `docs/THREAT-MODEL.md` — what this does *not* protect against
-- `docs/SETUP.md` — zero to a real payout, including the two footguns that cost us time
-- `docs/HANDOVER.md` — running it without us: day-1 checklist, what breaks first, cost
-- `BUGS.md` — 4 confirmed platform findings with reproductions, plus 3 we
+- `README.md`: what it is, how to verify it, the layout
+- `docs/ARCHITECTURE.md`: the trust boundaries and the data flow
+- `docs/THREAT-MODEL.md`: what this does *not* protect against
+- `docs/SETUP.md`: zero to a real payout, including the two footguns that cost us time
+- `docs/HANDOVER.md`: running it without us: day-1 checklist, what breaks first, cost
+- `BUGS.md`: 4 confirmed platform findings with reproductions, plus 3 we
   withdrew after re-checking
 
 ### Bugs faced
@@ -136,19 +136,19 @@ Full write-up with reproductions in `BUGS.md`. Summary:
 
 | # | Finding | Severity |
 |---|---|---|
-| 1 | The docs' own `invoke-contract.md` snippet does not compile: `trustAnchor` is passed twice in one object literal, which TypeScript rejects with `TS1117` — the last step of the walkthrough is uncopyable | **High** |
-| 2 | A declared host import is silently pruned from the compiled artifact: declare five, get four, with no warning anywhere — so the capability set the docs call authoritative is not what you declared. Practical impact is low (the pruned direction is the safe one, and a *typo'd* name fails the build loudly rather than silently); the cost is auditability and diagnosis | Medium |
-| 3 | `write-contract.md` tells you to vendor `host-interfaces-2.2.0`/`host-tenant-1.2.0`; following it literally fails to build (`package 'host:tenant@1.2.0' not found`). The page also contradicts the docs' own capability page and the reference repo, both of which use `2.1.0`/`1.0.0` — and the changelog claims this exact fix already landed | Medium |
-| 4 | The SDK ships fully obfuscated with no source maps, so every stack frame through it points into a single multi-hundred-KB line (we saw `index.esm.js:2:456604`) — unreadable — and, as we found the hard way, static review of it produces false negatives | Medium |
+| 1 | The docs' own `invoke-contract.md` snippet does not compile: `trustAnchor` is passed twice in one object literal, which TypeScript rejects with `TS1117`. The last step of the walkthrough is uncopyable | **High** |
+| 2 | A declared host import is silently pruned from the compiled artifact: declare five, get four, with no warning anywhere, so the capability set the docs call authoritative is not what you declared. Practical impact is low (the pruned direction is the safe one, and a *typo'd* name fails the build loudly rather than silently); the cost is auditability and diagnosis | Medium |
+| 3 | `write-contract.md` tells you to vendor `host-interfaces-2.2.0`/`host-tenant-1.2.0`; following it literally fails to build (`package 'host:tenant@1.2.0' not found`). The page also contradicts the docs' own capability page and the reference repo, both of which use `2.1.0`/`1.0.0`, and the changelog claims this exact fix already landed | Medium |
+| 4 | The SDK ships fully obfuscated with no source maps, so every stack frame through it points into a single multi-hundred-KB line (we saw `index.esm.js:2:456604`), unreadable, and, as we found the hard way, static review of it produces false negatives | Medium |
 
 Three findings we **withdrew** after re-checking, recorded in `BUGS.md` so they are
 not re-reported: the `contract_id` `number`/`string` split (the docs are explicit
 that the numeric ACL id is not recoverable after re-registration, and warn you to
-keep a record — a documented limitation, not a defect); `T3N_ENV` being "ignored"
+keep a record, a documented limitation, not a defect); `T3N_ENV` being "ignored"
 (we had grepped the obfuscated bundle for the literal string, got 0 hits, and
-concluded the feature was missing — the CLI in fact honours it, and a behavioural
+concluded the feature was missing. The CLI in fact honours it, and a behavioural
 test proved our probe wrong); and the Camoufox browser failure (Camoufox appears
-nowhere in the T3N docs — a problem in our own local tooling, and reporting it
+nowhere in the T3N docs, a problem in our own local tooling, and reporting it
 against the ADK was a category error).
 
 Also hit, though not counted above: the Vercel Security Checkpoint on the
@@ -162,7 +162,7 @@ intended.
 
 ### Would we keep running it, or hand it over?
 
-**Hand it over, with a documented process — and we would stay available.**
+**Hand it over, with a documented process, and we would stay available.**
 
 We built it so that the handover is a checklist rather than an archaeology
 project, because a submission that only works in its author's head is not
@@ -188,7 +188,7 @@ running what was reviewed before they change a line.
 > memory, and bank details are reduced to last-4.
 >
 > 35 Rust tests + 42 TS tests, policy engine pure and host-free. 4 platform bugs
-> written up with repros — plus 3 we withdrew after re-checking. Every claim
+> written up with repros, plus 3 we withdrew after re-checking. Every claim
 > re-verified against the live docs and a clean rebuild.
 >
 > Repo: `<REPO_URL>`

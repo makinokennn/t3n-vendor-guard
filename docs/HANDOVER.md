@@ -1,4 +1,4 @@
-# Handover — running `vendor-guard` without us
+# Handover: running `vendor-guard` without us
 
 The challenge asks a specific question: *would you keep running this, or hand it
 over?* This is the answer for the hand-over case, written for the person who
@@ -57,8 +57,8 @@ Honest list, ordered by how likely it is to bite you:
 ## Cost of running it
 
 Per payout, the component makes exactly one outbound call (the
-`http-with-placeholders` POST). Everything else — registry lookup, policy
-evaluation, ledger update — is local to the enclave. So your cost scales with
+`http-with-placeholders` POST). Everything else (registry lookup, policy
+evaluation, ledger update) is local to the enclave. So your cost scales with
 payout volume, not with agent chatter. A tenant doing 200 payouts/month is
 nowhere near a meaningful spend on credits.
 
@@ -97,11 +97,11 @@ holds an agent key.
 
 What you should add before real money moves, in priority order:
 
-1. A real approval UI in front of `vendor-guard-mint` — today it is a CLI, which
+1. A real approval UI in front of `vendor-guard-mint`; today it is a CLI, which
    is fine for a demo and not fine for a finance team.
 2. Ship the audit JSONL off-box (it is append-only and local today, so a
    compromise of the host loses it).
-3. Alerting on repeated policy denials — a spike is the signal that someone is
+3. Alerting on repeated policy denials, since a spike is the signal that someone is
    probing the gate, and nothing currently surfaces it.
 
 ## Contact / provenance

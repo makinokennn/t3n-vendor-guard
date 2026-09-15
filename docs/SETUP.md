@@ -1,4 +1,4 @@
-# Setup — from zero to a real payout
+# Setup: from zero to a real payout
 
 This is the long form. If you only want to *read* the design, stop after the
 "Run the tests" section; everything below it needs a Terminal 3 tenant.
@@ -25,7 +25,7 @@ cargo install --locked wasm-tools    # or grab a release binary
 node --version                       # v22.6+ (needs type-stripping); v24/26 verified
 ```
 
-Node 22.6+ can run the TypeScript directly via type-stripping — there is no build
+Node 22.6+ can run the TypeScript directly via type-stripping, so there is no build
 step and no bundler in this repo. Note that type-stripping does **not** support
 `enum`, which is why the whole agent uses union types instead.
 
@@ -43,7 +43,7 @@ Expected: `35 passed` for the contract, `42 pass / 0 fail` for the agent.
 The contract tests run on the **host** target on purpose. `policy.rs` is a pure
 function of its arguments with no host interface in scope, so it can be tested
 without a WASM runtime, without an enclave, and without a tenant. That is not an
-accident — it is why the policy engine is a separate module from `api.rs`.
+accident. It is why the policy engine is a separate module from `api.rs`.
 
 ## 2. Build the component
 
@@ -55,7 +55,7 @@ wasm-tools component wit target/wasm32-wasip2/release/vendor_guard.wasm | grep i
 
 The second command is not decoration. It prints the capability set that is
 *actually* in the artifact, which is not identical to what `wit/world.wit`
-declares and not identical to the four `host:` interfaces you are expecting —
+declares and not identical to the four `host:` interfaces you are expecting;
 see [`../BUGS.md`](../BUGS.md) finding 2. Read it before you trust any claim in
 this repo about what the contract can reach.
 
@@ -63,14 +63,14 @@ this repo about what the contract can reach.
 
 ## 3. Claim an API key and a tenant
 
-This part is manual and cannot be scripted — it is a Google SSO flow behind a
+This part is manual and cannot be scripted: it is a Google SSO flow behind a
 work-email check, which is the point.
 
 1. Go to <https://www.terminal3.io/claim-page> and sign in with Google using a
    **work** address (consumer domains are rejected).
 2. Claim the Agent Developer Kit. You get a tenant DID (`did:t3n:<hex>`).
 3. Create an **agent** identity as well, distinct from the tenant. The agent must
-   *not* hold the tenant key — give it its own key with its own DID and its own
+   *not* hold the tenant key. Give it its own key with its own DID and its own
    credits, so a leaked agent key cannot administer the tenant.
 
 At the end you should have:
@@ -93,13 +93,13 @@ openssl rand -base64 48
 ## 4. Publish the contract and create its maps
 
 The two maps must exist before the first invocation, and their ACLs are the
-access-control boundary — so this runs as the **tenant owner**, never as the
+access-control boundary, so this runs as the **tenant owner**, never as the
 agent.
 
 ```bash
 cd agent
 npm install
-export TENANT_API_KEY="<the TENANT's key — not the agent's>"
+export TENANT_API_KEY="<the TENANT's key, not the agent's>"
 
 # 4a. register/publish. Capture the contract_id from the output.
 node src/admin.ts register --version 0.1.0 \
@@ -116,7 +116,7 @@ Two notes that cost us real time:
   `DescribeContractResult` do not expose the id at all, so the only reliable
   source is the register call you just made.
 - The KV governor defaults an unspecified `readers` to **deny**. If you create a
-  map without a reader set, it is not "private by convention" — it is unreadable,
+  map without a reader set, it is not "private by convention": it is unreadable,
   and the failure surfaces later as an empty read rather than an error.
 
 `register` also records the contract tail; put that value in
@@ -186,7 +186,7 @@ node src/cli.ts audit --limit 20
 node src/cli.ts mcp      # JSON-RPC 2.0 over stdio, zero dependencies
 ```
 
-Four tools are exposed — `policy`, `check`, `pay`, `audit`. `register` and
+Four tools are exposed: `policy`, `check`, `pay`, `audit`. `register` and
 `set-secret` are **not** among them, by construction: a tool an agent can call to
 register a vendor is a tool an agent can call to redirect a payout to itself.
 
@@ -201,7 +201,7 @@ register a vendor is a tool an agent can call to redirect a payout to itself.
 | `AGENT_APPROVAL_SECRET must be at least 32 bytes` | short key; the token would be forgeable |
 | `T3N_AGENT_KEY is not set` | you exported the tenant key, or nothing |
 | `VENDOR_API_KEY is not set` | `seed-api-key` reads the env var, not a flag |
-| payout rejected with no host call made | policy denied it — run `policy` to see the effective rules |
+| payout rejected with no host call made | policy denied it; run `policy` to see the effective rules |
 | `AGENT_ALLOW_REVIEW` | leave it `false` unless you mean to let review-flagged payouts through |
 
 ## What is *not* covered

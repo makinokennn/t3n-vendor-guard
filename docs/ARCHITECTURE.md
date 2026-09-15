@@ -51,11 +51,11 @@ Three properties fall out of this ordering:
 
 | Secret | Held by | Readable by the agent? |
 | --- | --- | --- |
-| Vendor API key | `z:<tid>:secrets` in the TEE | **No** — used in-enclave, never returned |
-| Approver's name/email | the host, resolved from the paying user's profile | **No** — the contract authors `{{profile.*}}` and the host substitutes at dispatch |
-| Full bank account | nowhere in this system | **No** — the registry stores `bank_last4` only |
+| Vendor API key | `z:<tid>:secrets` in the TEE | **No**: used in-enclave, never returned |
+| Approver's name/email | the host, resolved from the paying user's profile | **No**: the contract authors `{{profile.*}}` and the host substitutes at dispatch |
+| Full bank account | nowhere in this system | **No**: the registry stores `bank_last4` only |
 | Approval HMAC secret | agent process + finance machine | Yes (documented limitation, see THREAT-MODEL) |
-| Tenant API key | the human operator | **No** — the agent gets its *own* key with its *own* credits |
+| Tenant API key | the human operator | **No**: the agent gets its *own* key with its *own* credits |
 
 ## The approval token
 
@@ -80,16 +80,16 @@ finance@example.com
 Verification order, and why it is this order:
 
 1. **MAC first, then parse.** Never parse attacker-controlled structure before authenticating
-   it. `timingSafeEqual` for the comparison — a length-mismatch fast path would leak the MAC
+   it. `timingSafeEqual` for the comparison, because a length-mismatch fast path would leak the MAC
    length and make forgery measurable.
 2. **Then version**, so a future token format is rejected loudly rather than misread.
-3. **Then binding** — vendor, amount, currency and memo must equal the intent being paid. This is
+3. **Then binding**: vendor, amount, currency and memo must equal the intent being paid. This is
    the step that makes a token non-transferable.
-4. **Then time** — expiry, and a lifetime ceiling so a "valid for a year" token is refused.
+4. **Then time**: expiry, and a lifetime ceiling so a "valid for a year" token is refused.
 5. **Then nonce**, checked against the spent-nonce set built from the audit log.
 
 `memoHash` compares `SHA-256(trimmed)` rather than the raw string, so `"INV-1"`, `" INV-1 "` and
-`"INV-1\n"` are the same approval — while `"INV-2"` is not.
+`"INV-1\n"` are the same approval, while `"INV-2"` is not.
 
 ## Why the audit log is the nonce store
 
@@ -121,7 +121,7 @@ Two consequences of using the host interfaces rather than rolling our own:
   and enforces egress grants. The contract never handles the approver's identity, and an
   un-granted host fails with `egress_denied` rather than silently succeeding.
 
-`http-with-placeholders` is imported and `http` is not — the component's imports are exactly the
+`http-with-placeholders` is imported and `http` is not: the component's imports are exactly the
 capabilities it uses. You can verify this yourself:
 
 ```bash
