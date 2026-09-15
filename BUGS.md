@@ -254,8 +254,8 @@ error: failed to resolve directory while parsing WIT for path [wit]
 ```
 
 The toolchain's own error lists the packages that *do* exist: `2.1.0` and
-`1.0.0`. So the page's version numbers are not merely stale relative to the
-reference repo. They are unbuildable in a project set up exactly as the
+`1.0.0`. So the page's version numbers are not stale relative to the
+reference repo, they are unbuildable in a project set up exactly as the
 walkthrough instructs.
 
 **The docs contradict each other.** The page dedicated to this exact topic uses
