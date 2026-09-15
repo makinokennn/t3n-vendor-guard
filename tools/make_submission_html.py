@@ -48,13 +48,23 @@ def main() -> int:
 
     text = SRC.read_text()
 
-    # The header note about pasting is for whoever runs this, not for the Doc.
+    # Strip the authoring note at the top: it tells whoever runs this script how
+    # to publish the Doc, and it must not end up inside the Doc itself. The file
+    # starts with the H1 "# Submission text: ...", so anchor on that, not on the
+    # prose underneath it.
     text = re.sub(
-        r"\AThis file is the submission \*content\*.*?Placeholders[^\n]*\n+",
+        r"\A#\s*Submission text[^\n]*\n.*?\n---\n",
         "",
         text,
+        count=1,
         flags=re.S,
     )
+
+    if text.lstrip().startswith("# Submission text"):
+        raise SystemExit(
+            "refusing to render: the authoring note was not stripped, "
+            "so the Doc would contain internal instructions"
+        )
 
     body = markdown.markdown(
         text,
