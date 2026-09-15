@@ -3,10 +3,19 @@
 #
 #   ./tools/push.sh                      # uses gh auth (gh auth login first)
 #   GH_TOKEN=ghp_... ./tools/push.sh     # or an explicit token
+#   GH_TOKEN_FILE=~/.gh_token ./tools/push.sh   # token from a file (no shell history)
 #
 # The token is read from the environment and never written to the repo or to
 # shell history.
 set -euo pipefail
+
+# Read the token from a file when given, so it never lands in shell history or
+# in a chat transcript. The file is read, used, and left alone.
+if [ -z "${GH_TOKEN:-}" ] && [ -n "${GH_TOKEN_FILE:-}" ]; then
+  [ -f "${GH_TOKEN_FILE}" ] || { echo "GH_TOKEN_FILE not found: ${GH_TOKEN_FILE}" >&2; exit 1; }
+  GH_TOKEN="$(tr -d ' \t\r\n' < "${GH_TOKEN_FILE}")"
+  export GH_TOKEN
+fi
 
 REPO_NAME="${REPO_NAME:-t3n-vendor-guard}"
 VISIBILITY="${VISIBILITY:-public}"
