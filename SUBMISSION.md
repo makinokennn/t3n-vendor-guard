@@ -56,7 +56,8 @@ choices:
 
 1. **`policy.rs` is pure.** No host interface, no I/O, no clock, no network. It is
    a function from arguments to a decision. That is why the policy engine is
-   unit-tested on the *host* target: 35 tests, no enclave, no tenant, no network.
+   unit-tested on the *host* target: 36 tests (35 unit + 1 doc-test), no enclave,
+   no tenant, no network.
    A maintainer can change a spending rule and know within seconds whether it
    broke something.
 2. **The agent depends on a narrow interface.** It talks to a `ContractInvoker`,
@@ -176,7 +177,7 @@ So, plainly:
 
 | Claim | Status |
 |---|---|
-| 35 Rust tests, 42 TS tests, clean `tsc --noEmit` | **Verified**, and re-runnable with no tenant |
+| 36 Rust tests (35 unit + 1 doc-test), 42 TS tests, clean `tsc --noEmit` | **Verified**, and re-runnable with no tenant |
 | The committed WASM is a real `wasm32-wasip2` build | **Verified**, hash in screenshot 4 |
 | The policy engine behaves as described | **Verified** by the test suite; it is pure and host-free |
 | The CLI output shown in the README | **Illustrative.** Written to show the shape of the interface, not captured from a live tenant |
@@ -209,7 +210,7 @@ running what was reviewed before they change a line.
 > HMAC-bound to the exact vendor/amount/memo, approver identity never enters WASM
 > memory, and bank details are reduced to last-4.
 >
-> 35 Rust tests + 42 TS tests, policy engine pure and host-free. 5 platform bugs
+> 36 Rust tests + 42 TS tests, policy engine pure and host-free. 5 platform bugs
 > written up with repros, plus 3 we withdrew after re-checking. Every claim
 > re-verified against the live docs and a clean rebuild.
 >

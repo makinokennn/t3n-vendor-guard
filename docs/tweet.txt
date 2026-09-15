@@ -2,6 +2,6 @@ Vendor-payout agent on @terminal3io: the money-moving policy is a WASM contract 
 
 The agent can propose a payout. It cannot authorise one.
 
-35 Rust + 42 TS tests. 5 platform bugs written up, 3 withdrawn.
+36 Rust + 42 TS tests. 5 platform bugs written up, 3 withdrawn.
 
 github.com/makinokennn/t3n-vendor-guard

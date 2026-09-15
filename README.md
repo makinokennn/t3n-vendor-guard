@@ -162,7 +162,7 @@ git clone https://github.com/makinokennn/t3n-vendor-guard && cd t3n-vendor-guard
 
 # 1. Contract: build + test
 cd contract
-cargo test --target x86_64-unknown-linux-gnu   # 35 tests, host target
+cargo test --target x86_64-unknown-linux-gnu   # 36 tests, host target
 cargo build --release --target wasm32-wasip2   # → target/wasm32-wasip2/release/vendor_guard.wasm
 
 # 2. Agent: test + typecheck
@@ -184,6 +184,18 @@ Then publish and run for real: [`docs/SETUP.md`](docs/SETUP.md).
 
 ### Evidence
 
+**One command verifies every claim in this repo:**
+
+```bash
+./tools/verify-all.sh
+```
+
+It runs the Rust tests, rebuilds the component and checks its hash, counts the
+capability set in the artifact, typechecks and tests the agent, and re-runs the
+doc-bug reproductions that need only `curl`. It prints PASS/FAIL per step and
+exits non-zero on failure, so it works in CI. The steps it cannot run without a
+claimed tenant are listed as SKIP rather than quietly omitted.
+
 Every image in [`docs/screenshots/`](docs/screenshots) is a real command's output,
 rendered by [`tools/make_screenshots.py`](tools/make_screenshots.py), re-run it
 and you get the same pictures from your own machine.
@@ -192,7 +204,7 @@ The three that carry the most weight, inline so you don't have to go looking:
 
 **The contract's tests pass on the host target, where there is no enclave to hide behind:**
 
-![35 Rust tests passing](docs/screenshots/01-contract-tests.png)
+![36 Rust tests passing](docs/screenshots/01-contract-tests.png)
 
 **The agent typechecks and its 42 tests pass:**
 
@@ -206,7 +218,7 @@ The rest, indexed:
 
 | | |
 |---|---|
-| [Contract tests](docs/screenshots/01-contract-tests.png) | 35 tests, host target, no enclave |
+| [Contract tests](docs/screenshots/01-contract-tests.png) | 36 tests (35 unit + 1 doc-test), host target |
 | [Agent typecheck + tests](docs/screenshots/02-agent-typecheck-and-tests.png) | `tsc --noEmit` clean, 42 pass |
 | [Capability set](docs/screenshots/03-capability-set.png) | what the artifact *actually* imports (BUGS.md #2) |
 | [Artifact hash](docs/screenshots/04-artifact-hash.png) | the committed component, hash-verifiable |
@@ -389,7 +401,7 @@ a network. A payout that claims `status: "paid"` without a reference is rejected
 ## Testing
 
 ```bash
-cd contract && cargo test --target x86_64-unknown-linux-gnu   # 35 tests
+cd contract && cargo test --target x86_64-unknown-linux-gnu   # 36 tests
 cd agent && npm test                                          # 42 tests
 ```
 

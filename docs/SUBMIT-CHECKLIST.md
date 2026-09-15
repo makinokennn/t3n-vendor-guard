@@ -68,7 +68,7 @@ From the listing, in the order it states them:
 1. **Time to submit.** Earlier is better. The repo has been public since
    2026-09-15 and is complete; do not sit on the form.
 2. **Build quality (usefulness and ease to maintain)**, called out as VERY
-   IMPORTANT. The policy engine is pure and host-free, there are 35 Rust and 42
+   IMPORTANT. The policy engine is pure and host-free, there are 36 Rust and 42
    TypeScript tests, and `docs/HANDOVER.md` is written for the next person.
 3. **Documentation quality.** README, `docs/ARCHITECTURE.md`,
    `docs/THREAT-MODEL.md`, `docs/SETUP.md`, `docs/HANDOVER.md`.

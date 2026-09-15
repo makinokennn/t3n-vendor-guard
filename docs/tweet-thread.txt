@@ -18,7 +18,7 @@ A prompt-injected model cannot reach any of it.
 ---
 
 3/3
-35 Rust tests + 42 TS tests, policy engine pure and host-free.
+36 Rust tests + 42 TS tests, policy engine pure and host-free.
 
 While building it I found 5 platform bugs with reproductions, and withdrew 3 more after re-checking them. All in BUGS.md.
 

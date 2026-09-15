@@ -217,7 +217,8 @@ has been registered or invoked on testnet by us.
 
 What that means for the claims in this repo, stated plainly:
 
-- The **unit and integration tests are real**: 35 Rust tests on the host target,
+- The **unit and integration tests are real**: 36 Rust tests on the host target
+  (35 unit + 1 doc-test),
   42 TypeScript tests, and a clean `tsc --noEmit`. Those are what screenshots 1,
   2 and 3 show, and they run without any tenant.
 - The **build is real**: the committed component was produced by
